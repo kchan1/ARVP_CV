@@ -1,0 +1,42 @@
+Command to compile the source:
+  gcc -Wall -I/usr/local/include -c example.c
+
+Commands to add library to the path if it is not already
+  LD_LIBRARY_PATH=/usr/local/lib
+  export LD_LIBRARY_PATH
+
+Command for link?
+  gcc -L/usr/local/lib example.o -lgsl -lgslcblas -lm
+
+*can specify -o to rename the output program
+
+Command for running C programming 
+
+gedit file.c
+gcc -o file file.c
+./file
+
+gedit .profile
+export PATH=.:$PATH
+file
+
+Mutex/Threads:
+gcc -pthread -o file file.c
+./file
+
+Command for Github
+
+sudo apt-get install git-all
+git config --global user.name "user_name"
+git config --global user.email "email_id"
+git init Folder
+cd Folder
+gedit README
+git add README
+git commit -m "message"
+git remote add origin https://github.com/user_name/Folder.git
+git push origin master
+
+git add .
+git commit -m "message"
+git push origin master
