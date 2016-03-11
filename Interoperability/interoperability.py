@@ -13,7 +13,7 @@ c = pycurl.Curl()
 
 c.setopt(pycurl.URL, interop_api_url+'login')
 c.setopt(pycurl.POSTFIELDS, 'username=testadmin&password=testpass')
-c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
+c.setopt(pycurl.COOKIEJAR, 'sessionid.txt')
 c.perform()
 
 # Initial server_info GET request
