@@ -11,11 +11,15 @@ from StringIO import StringIO
 
 # Setup
 interop_api_url = 'http://155.246.210.164/api/'
+sock = None
 
 class GuiPart:
-    def __init__(self, master, queue, endCommand):
+    def __init__(self, master, queue, queue2, endCommand):
         self.queue = queue
+        self.queue2 = queue2
         self.msg = ""
+        self.targetpics = []
+        self.currentImage = -1
         
         # Set up the GUI
         console = Tkinter.Button(master, text='Done', command=endCommand)
@@ -38,7 +42,7 @@ class GuiPart:
         logo.grid(row=0, column=2, padx=5, pady=5)
 
         #Obstacles Button
-        obs_but = Tkinter.Button(master, text='Retreive Obstacles From Server', command=getObstacles)
+        obs_but = Tkinter.Button(master, text='Retreive Obstacles From Server', command=self.getObstacles)
         obs_but.grid(row=1, column=1, sticky=Tkinter.W)
 
         #General Terminal Button
@@ -67,6 +71,22 @@ class GuiPart:
         #General Terminal Text Area
         self.gt_text = Tkinter.Entry(master, bd=5, width=70)
         self.gt_text.grid(row=3, column=2, columnspan=1, padx=5, pady=5)
+
+        #Target Picture Buttons
+        pane = Tkinter.PanedWindow()
+        rti_prev = Tkinter.Button(master, text='Prev Picture', command=self.prevPic)
+        pane.add(rti_prev)
+        self.rti_label = Tkinter.Label(master, text='Awaiting Target')
+        rti_next = Tkinter.Button(master, text='Next Picture', command=self.nextPic)
+        pane.add(rti_next)
+        pane.add(self.rti_label)
+        pane.grid(row=4, column=2, padx=5, pady=5)
+
+        #Target Images
+        rtimg = Tkinter.PhotoImage(file="target.gif")
+        self.rti = Tkinter.Label(master, image = rtimg)
+        self.rti.image=rtimg
+        self.rti.grid(row=5, column=2, columnspan=1, padx=5, pady=5)
         
         # Add more GUI stuff here
 
@@ -74,12 +94,20 @@ class GuiPart:
         """
         Handle all the messages currently in the queue (if any).
         """
+        #self.counter = 0
         while self.queue.qsize():
             try:
                 self.msg = str(self.queue.get(0)) + '\n'
                 # Check contents of message and do what it says
                 # As a test, we simply print it
                 self.tele.insert('end', self.msg)
+                self.msg2 = self.queue2.get(0) + '\n'
+                if(self.msg2.find('Target') == 0):
+                    #self.targetpics[self.counter] = self.msg2
+                    self.targetpics.append(self.msg2)
+                    #self.counter += 1
+                else:
+                    self.rt.insert('end', self.msg2)
             except Queue.Empty:
                 pass
     
@@ -97,10 +125,25 @@ class GuiPart:
         obstacles_json = json.loads(buffer.getvalue())
 
         print("\n\n" + "====Obstacles====")
-        obstacles = json.dumps(obstacles_json, sort_keys=True,indent=4, separators=(',', ': ')
+        obstacles = json.dumps(obstacles_json, sort_keys=True,indent=4, separators=(',', ': '))
         print obstacles
         self.obs.insert('end', obstacles)
-        
+    
+    def nextPic(self):
+        if(self.currentImage < len(self.targetpics) - 1):
+            self.currentImage += 1
+            self.nextImage = Tkinter.PhotoImage(file='Photos/' + self.targetpics[self.currentImage].strip())
+            self.rti.configure(image=self.nextImage)
+            self.rti.image = self.nextImage
+            self.rti_label.configure(text=self.targetpics[self.currentImage].strip())
+
+    def prevPic(self):
+        if(self.currentImage > 0):
+            self.currentImage -= 1
+            self.nextImage = Tkinter.PhotoImage(file='Photos/' + self.targetpics[self.currentImage].strip())
+            self.rti.configure(image=self.nextImage)
+            self.rti.image = self.nextImage
+            self.rti_label.configure(text=self.targetpics[self.currentImage].strip())
 
 class ThreadedClient:
     """
@@ -118,9 +161,10 @@ class ThreadedClient:
 
         # Create the queue
         self.queue = Queue.Queue()
+        self.queue2 = Queue.Queue()
 
         # Set up the GUI part
-        self.gui = GuiPart(master, self.queue, self.endApplication)
+        self.gui = GuiPart(master, self.queue, self.queue2, self.endApplication)
 
         # Set up the thread to do asynchronous I/O
         # More can be made if necessary
@@ -128,6 +172,9 @@ class ThreadedClient:
         self.thread1 = threading.Thread(target=self.workerThread1)
         self.thread1.start()
 
+        self.thread2 = threading.Thread(target=self.workerThread2)
+        self.thread2.start()
+        
         # Start the periodic call in the GUI to check if the queue contains
         # anything
         self.periodicCall()
@@ -141,6 +188,8 @@ class ThreadedClient:
             # This is the brutal stop of the system. You may want to do
             # some cleanup before actually shutting it down.
             import sys
+            print 'Quitting'
+            self.master.destroy()
             sys.exit(1)
         self.master.after(100, self.periodicCall)
 
@@ -159,30 +208,88 @@ class ThreadedClient:
             msg = rand.random()
             self.queue.put(msg)
             '''sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_address = ('localhost', 10005)
+            server_address = ('localhost', 10008)
             sock.bind(server_address)
 
             sock.listen(1)
             while self.running:
-                print 'Waiting for connection'
+                self.queue.put('Waiting for connection')
                 connection, client_address = sock.accept()
+                self.queue.put('Connected to Mission Planner!')
                 while self.running:
+                    # Initial server_info GET request
+                    c = pycurl.Curl()
+
+                    buffer = StringIO()
+                    c.setopt(pycurl.URL, interop_api_url+'server_info')
+                    c.setopt(pycurl.WRITEDATA, buffer)
+                    c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
+                    c.perform()
+                    self.queue.put('Server Time:\n' + buffer.getvalue())
+                    
                     data = connection.recv(200)
+                    #print str(len(data)) + '\n'
+                    if(len(data) > 75):
+                        data = data[:data.find('latitude',25)]
+                        self.queue.put('*****Telemetry Overflow*****')
+                    
+                    # Send telemetry to server
+                    c = pycurl.Curl()
+
+                    c.setopt(pycurl.URL, interop_api_url+'telemetry')
+                    c.setopt(pycurl.POSTFIELDS, data)
+                    c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
+                    c.perform()
+                    
                     self.queue.put(data)
                     #print data
                     sock.close()'''
+
+    def workerThread2(self):
+        s = socket.socket()         # Create a socket object
+        host = socket.gethostname() # Get local machine name
+        port = 12352                # Reserve a port for your service.
+        s.bind((host, port))        # Bind to the port
+
+        s.listen(5)                 # Now wait for client connection.
+        counter = 0
+        #c, addr = s.accept()
+        for x in range(1,3):     # Establish connection with client.
+            c, addr = s.accept()
+           #print c.recv(256)
+            msg = c.recv(256).split(',')
+            message = '[Target ' + str(counter + 1) + ']:\nType: ' + msg[0] + '\nLatitude: ' + msg[1] + '\nLongitude: ' + msg[2] + '\nOreintation: ' + msg[3] + '\nShape: ' + msg[4] + '\nBackground Color: ' + msg[5] + '\nAlphanumeric: ' + msg[6] + '\nAlphanumeric Color: ' + msg[7] + '\n'
+            self.queue2.put(message)
+            c.close()
+           
+            c, addr = s.accept()
+            print ('Got connection from', addr)
+            counter += 1
+            fname = 'Photos/Target' + str(counter) + '.gif'
+            self.queue2.put(fname[7:])
+            fp = open(fname,'wb')
+            while True:
+                strng = c.recv(512)
+                if not strng:
+                    break
+                fp.write(strng)
+            fp.close()
+            print "Data Received successfully"
+            #print (c.recv(1024))
+            c.close()                # Close the connection
+        s.close()
     
     def endApplication(self):
         self.running = 0
 
 # Send POST login session cookie
 
-c = pycurl.Curl()
+'''c = pycurl.Curl()
 
 c.setopt(pycurl.URL, interop_api_url+'login')
 c.setopt(pycurl.POSTFIELDS, 'username=testadmin&password=testpass')
 c.setopt(pycurl.COOKIEJAR, 'sessionid.txt')
-c.perform()
+c.perform()'''
 
 rand = random.Random()
 root = Tkinter.Tk()
