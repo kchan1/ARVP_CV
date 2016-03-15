@@ -1,0 +1,17 @@
+**************************************************************************************
+TESSERACT - OCR : READ ME 
+**************************************************************************************
+
+1. http://www.sunnypage.ge/
+
+2. Install DAYLIGHT SUNNYPAGE 2.7 OCR
+
+3. Train Data using Alphanumeric Orientations
+
+4. http://miphol.com/muse/2013/05/install-tesseract-ocr-on-ubunt.html
+
+5. Install Tesseract
+
+5. Simply place the trained data under /usr/local/share/tessdata. You can do this through wget or FTP upload
+
+6. Recognition Complete
