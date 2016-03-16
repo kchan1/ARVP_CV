@@ -1,5 +1,6 @@
 #include "imgformat.hpp"
-#include "LinkedList.hpp"private
+#include "LinkedList.hpp"
+#include <gsl/gsl_blas.h>
 #ifndef _TARGETFIND_H_
 #define _TARGETFIND_H_
 

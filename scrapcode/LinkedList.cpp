@@ -1,3 +1,6 @@
+#include "LinkedList.hpp"
+#include <iostream>
+
 template<class Elem>
 void LinkedList<Elem>::push(Elem* e)
 {
@@ -35,7 +38,7 @@ Elem* LinkedList<Elem>::pop()
   returnBuff = endNode->e;
   delete endNode;
   size--;
-  return e;
+  return returnBuff;
 }
 
 template<class Elem>
@@ -73,18 +76,55 @@ Elem* LinkedList<Elem>::get(int index)
 }
 
 template<class Elem>
-Elem* LinkedList<Elem>::set(int index,Elem* e)
+void LinkedList<Elem>::add(int index,Elem* e)
 {
   if(index > size)
-    return NULL;
+    push(e);
   else if(index==0)
     unshift(e);
+  //traverse into the right spot
   int i;
-  ListNode<Elem>* traverse = head;
-  //TODO: Actually finish this implementation
+  ListNode<Elem>* prevNode = NULL;
+  ListNode<Elem>* currentNode = head;
   for(i=0;i<index;i++)
   {
-    traverse = traverse->next;
+    prevNode = currentNode;
+    currentNode = currentNode->next;
   }
-  
+  //do pointer magic
+  prevNode->next = new ListNode<Elem>(e,currentNode);
+  size++;
+}
+
+template<class Elem>
+bool LinkedList<Elem>::hasNext()
+{
+  return size>0;
+}
+
+template<class Elem>
+Elem* LinkedList<Elem>::remove(int index)
+{
+  if(index<0 || index>=size)
+    return NULL;
+  else if(index==0)
+    return shift();
+  else
+  {
+    int i;
+    Elem * returnBuff;
+    ListNode<Elem>* prevNode = NULL;
+    ListNode<Elem>* currentNode = head;
+    for(i=0;i<index;i++)
+    {
+      prevNode = currentNode;
+      currentNode = currentNode->next;
+    }
+    //do pointer magic
+    prevNode->next = currentNode->next;
+    returnBuff = currentNode->e;
+    delete currentNode;
+    size--;
+    return returnBuff;
+  }
 }

@@ -1,12 +1,12 @@
 Command to compile the source:
-  gcc -Wall -I/usr/local/include -c example.c
+  g++ -Wall -I/usr/local/include -c example.cpp
 
 Commands to add library to the path if it is not already
   LD_LIBRARY_PATH=/usr/local/lib
   export LD_LIBRARY_PATH
 
 Command for link?
-  gcc -L/usr/local/lib example.o -lgsl -lgslcblas -lm
+  g++ -L/usr/local/lib example.o -lgsl -lgslcblas -lm -ljpeg
 
 *can specify -o to rename the output program
 
