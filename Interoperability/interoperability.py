@@ -34,7 +34,7 @@ class GuiPart:
         #Receiving Targets Window
         self.rt = ScrolledText(master, width=50, height=10, wrap='word')
         self.rt.insert('end', 'Awaiting Target Data...\n------------------------\n')
-        self.rt.grid(row=0, column=3, columnspan=1, padx=5, pady=5)
+        self.rt.grid(row=0, column=3, columnspan=2, padx=5, pady=5)
 
         #Image
         img = Tkinter.PhotoImage(file="logo.gif")
@@ -51,8 +51,8 @@ class GuiPart:
         gt_but.grid(row=1, column=2, sticky=Tkinter.W)
 
         #Upload Targets Button
-        ut_but = Tkinter.Button(master, text='Upload Target Data', command=endCommand)
-        ut_but.grid(row=1, column=3, sticky=Tkinter.W)
+        ut_but = Tkinter.Button(master, text='Upload Target Data', command=self.uploadTarget)
+        ut_but.grid(row=1, column=3, columnspan=2, sticky=Tkinter.W)
 
         #Receiving Obstacles Window
         self.obs = ScrolledText(master, width=50, height=10, wrap='word')
@@ -65,12 +65,57 @@ class GuiPart:
         self.gt.grid(row=2, column=2, columnspan=1, padx=5, pady=5)
 
         #Upload Targets Window
-        self.ut = ScrolledText(master, width=50, height=10, wrap='word')
-        self.ut.insert('end', 'Enter in Target Data...\n------------------------\n')
-        self.ut.grid(row=2, column=3, columnspan=1, padx=5, pady=5)
+        #self.ut = ScrolledText(master, width=50, height=10, wrap='word')
+        #self.ut.insert('end', 'Enter in Target Data...\n------------------------\n')
+        
+        target_label_text = ["Target Type:    ","Latitude: ","Longitude:  ","Orientation:", \
+                           "Shape: ", "BG Color: ", "Letter/#:  ","Letter/# Color: "]
+        targetlabelpane = Tkinter.PanedWindow(orient=Tkinter.VERTICAL)
+        for i in target_label_text:
+            targetlabelpane.add(Tkinter.Label(master, text=i,pady=3))
+        targetlabelpane.grid(row=2, column=3,sticky=Tkinter.W)
+        
+        # Use combobox if user entry is also required
+        # Here we use optionmenu
+        self.available_target_type = Tkinter.StringVar() #["standard", "qrc", "off_axis", "emergent"]
+        self.available_target_type.set("standard")
+        self.available_orientation = Tkinter.StringVar() #["N","E","S","W","NE","SE","SW","NW"]
+        self.available_orientation.set("N")
+        self.available_shapes = Tkinter.StringVar()      #["circle","semicircle","quarter_circle","triangle","square","rectangle","trapezoid","pentagon","hexagon","heptagon","octagon","star","cross"]
+        self.available_shapes.set("circle")
+        self.available_bg_colors = Tkinter.StringVar()   #["white","black","gray","red","blue","green","yellow","purple","brown","orange"]
+        self.available_bg_colors.set("white")
+        self.available_alpha_colors = Tkinter.StringVar()
+        self.available_alpha_colors.set("white")
+
+        '''
+        drop_target_type = Tkinter.OptionMenu(master,available_target_type,"standard", "qrc", "off_axis", "emergent")
+        entry_lat = Tkinter.Entry(master, bd=5, width=70)
+        entry_lon = Tkinter.Entry(master, bd=5, width=70)
+        drop_orientation = Tkinter.OptionMenu(master,available_orientation,"N","E","S","W","NE","SE","SW","NW")
+        drop_shapes = Tkinter.OptionMenu(master,available_shapes,"circle","semicircle","quarter_circle","triangle","square","rectangle","trapezoid","pentagon","hexagon","heptagon","octagon","star","cross")
+        drop_bg_colors = Tkinter.OptionMenu(master,available_bg_colors,"white","black","gray","red","blue","green","yellow","purple","brown","orange")
+        entry_alphanum = Tkinter.Entry(master, bd=5, width=70)
+        drop_alpha_colors= Tkinter.OptionMenu(master,available_alpha_colors,"white","black","gray","red","blue","green","yellow","purple","brown","orange")
+        '''
+        
+        targetpane = Tkinter.PanedWindow(orient=Tkinter.VERTICAL)
+        targetpane.add(Tkinter.OptionMenu(master,self.available_target_type,"standard", "qrc", "off_axis", "emergent"))
+        self.entry_lat = Tkinter.Entry(master, width=10)
+        targetpane.add(self.entry_lat)
+        self.entry_lon = Tkinter.Entry(master,width=10)
+        targetpane.add(self.entry_lon)
+        targetpane.add(Tkinter.OptionMenu(master,self.available_orientation,"N","E","S","W","NE","SE","SW","NW"))
+        targetpane.add(Tkinter.OptionMenu(master,self.available_shapes,"circle","semicircle","quarter_circle","triangle","square","rectangle","trapezoid","pentagon","hexagon","heptagon","octagon","star","cross"))
+        targetpane.add(Tkinter.OptionMenu(master,self.available_bg_colors,"white","black","gray","red","blue","green","yellow","purple","brown","orange"))
+        self.entry_alphanum = Tkinter.Entry(master, width=10)
+        targetpane.add(self.entry_alphanum)
+        targetpane.add(Tkinter.OptionMenu(master,self.available_alpha_colors,"white","black","gray","red","blue","green","yellow","purple","brown","orange"))
+    
+        targetpane.grid(row=2, column=3, padx=5, pady=5)
 
         #General Terminal Text Area
-        self.gt_text = Tkinter.Entry(master, bd=5, width=70)
+        self.gt_text = Tkinter.Entry(master,width=70)
         self.gt_text.grid(row=3, column=2, columnspan=1, padx=5, pady=5)
 
         #Target Picture Buttons
@@ -99,10 +144,10 @@ class GuiPart:
         for i in range(0,3):
             credpane.append(Tkinter.PanedWindow())
             self.cred_label.append(Tkinter.Label(master, text=cred_label_text[i]))
-            self.cred_text.append((Tkinter.Entry(master, bd=5, width=50)))
+            self.cred_text.append((Tkinter.Entry(master,width=50)))
             credpane[i].add(self.cred_label[i])
             credpane[i].add(self.cred_text[i])
-            credpane[i].grid(row=5+i, column=1, columnspan=1, padx=5, pady=5, sticky=Tkinter.W)
+            credpane[i].grid(row=5+i, column=1, columnspan=1, padx=5, pady=5, sticky=Tkinter.E)
         self.cred_but = Tkinter.Button(master, text='Login', command=self.loginWithCred)
         self.cred_but.grid(row=8, column=1, columnspan=1, padx=5, pady=5)
         # Add more GUI stuff here
@@ -167,11 +212,30 @@ class GuiPart:
     def loginWithCred(self):
         global interop_api_url
         interop_api_url = "http://"+self.cred_text[0].get()+"/api/"
-        print interop_api_url
+        #print interop_api_url
         c = pycurl.Curl()
         c.setopt(pycurl.URL, interop_api_url+'login')
         c.setopt(pycurl.POSTFIELDS, 'username='+self.cred_text[1].get()+'&password='+self.cred_text[2].get())
         c.setopt(pycurl.COOKIEJAR, 'sessionid.txt')
+        c.perform()
+
+    def uploadTarget(self):
+        global interop_api_url
+        target_data_dict = { \
+            "type": self.available_target_type.get(), \
+            "latitude": float(self.entry_lat.get()), \
+            "longitude": float(self.entry_lon.get()), \
+            "orientation": self.available_orientation.get(), \
+            "shape": self.available_shapes.get(), \
+            "background_color": self.available_bg_colors.get(), \
+            "alphanumeric": self.entry_alphanum.get(), \
+            "alphanumeric_color": self.available_alpha_colors.get(), \
+        }
+        json_target_data = json.dumps(target_data_dict)
+        c = pycurl.Curl()
+        c.setopt(pycurl.URL, interop_api_url+'targets')
+        c.setopt(pycurl.POSTFIELDS, json_target_data)
+        c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
         c.perform()
 
 '''
