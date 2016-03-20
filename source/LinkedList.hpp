@@ -20,6 +20,7 @@ private:
   ListNode<Elem>* head;
   int size;
 public:
+  LinkedList();
   void push(Elem*);
   Elem* pop(void);
   void unshift(Elem*);
@@ -27,7 +28,9 @@ public:
   Elem* get(int);
   void add(int,Elem*);
   Elem* remove(int);
+  int getSize();
   bool hasNext();
+  void debug_print();
 };
 
 //template class LinkedList<gsl_matrix>;
@@ -53,7 +56,10 @@ template<class Elem>
 Elem* LinkedList<Elem>::pop()
 {
   if(size==0)
+  {
+    printf("ERROR: TRIED TO POP AN EMPTY LIST!\n");
     return NULL;
+  }
   Elem* returnBuff;
   ListNode<Elem>* prevNode=NULL;
   ListNode<Elem>* endNode=head;
@@ -77,13 +83,17 @@ void LinkedList<Elem>::unshift(Elem* e)
 {
   head = new ListNode<Elem>(e,head);
   size++;
+  
 }
 
 template<class Elem>
 Elem* LinkedList<Elem>::shift(void)
 {
   if(size == 0)
+  {
+    printf("LIST: ERROR: TRIED TO POP AN EMPTY LIST!\n");
     return NULL;
+  }
   Elem* returnBuff = head->e;
   ListNode<Elem>* removeNode=head;
   head = head->next;
@@ -128,6 +138,12 @@ void LinkedList<Elem>::add(int index,Elem* e)
 }
 
 template<class Elem>
+int LinkedList<Elem>::getSize()
+{
+  return size;
+}
+
+template<class Elem>
 bool LinkedList<Elem>::hasNext()
 {
   return size>0;
@@ -137,7 +153,10 @@ template<class Elem>
 Elem* LinkedList<Elem>::remove(int index)
 {
   if(index<0 || index>=size)
+  {
+    printf("LIST: ERROR: REMOVE INDEX OUT OF BOUNDS!\n");
     return NULL;
+  }
   else if(index==0)
     return shift();
   else
@@ -160,4 +179,28 @@ Elem* LinkedList<Elem>::remove(int index)
   }
 }
 
+template<class Elem>
+LinkedList<Elem>::LinkedList()
+{
+  this->size=0;
+  this->head = NULL;
+}
+
+template<class Elem>
+void LinkedList<Elem>::debug_print()
+{
+  
+  printf("LIST: ELEM STATUS: %i ELEMS, (\n",getSize());
+  
+  ListNode<Elem> * currentNode=head;
+  
+  while(currentNode!=NULL)
+  {
+    printf("OK,\n");
+    currentNode = currentNode->next;
+  }
+  printf("END)\n");
+  
+  return;
+}
 #endif

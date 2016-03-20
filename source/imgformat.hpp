@@ -38,12 +38,16 @@ inline short int getChanD(unsigned long pixel)
 //gets a pixel bounded by the image border
 double getBoundPixel(gsl_matrix* img,int coordY,int coordX)
 {
+  /*
   if(isInImage(img,coordY,coordX))
   {
-    //printf("COORDS: (%i,%i)",coordX,coordY);
+    printf("COORDS: (%i,%i) = \n",coordY,coordX);
     return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
   }
-  else
+  */
+  
+  //else
+  if(!isInImage(img,coordY,coordX))
   {
     if(coordX<0)
       coordX=0;
@@ -54,8 +58,13 @@ double getBoundPixel(gsl_matrix* img,int coordY,int coordX)
       coordY=0;
     else if(coordY>=int(img->size1))
       coordY=img->size1-1;
-    //printf("COORDS: (%i,%i) = %f ",(unsigned int)coordX,(unsigned int)coordY,gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX)));
-    return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
   }
+  /*
+  printf("COORDS: (%i,%i) = %f \n",
+	 (unsigned int)coordY,
+	 (unsigned int)coordX,
+	 gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX)));
+  */
+  return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
 }
 #endif
