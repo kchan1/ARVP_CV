@@ -8,31 +8,44 @@
 class ConvResult
 {
 private:
-  LinkedList<gsl_matrix> result_data;
+  LinkedList<unsigned long*> result_data;
   LinkedList<int> result_row;
   size_t width;
 public:
-  ConvResult(int width)
+  ConvResult(size_t width)
   {
     this->width = width;
   }
   
   //once a convolution reaches the end of a row,
   //it will call this with the topmost row that it has cleared.
-  void writeClear(gsl_matrix*dst,int cleared_row)
+  void writeClear(ARVP_Image*dst,int cleared_row)
   {
     unsigned int i;
     //if the row the convolution has cleared is equal to the topmost row, which it should be usually
     if(cleared_row == *result_row.get(result_row.getSize()-1))
     {
       //get the topmost row's data and index
-      gsl_matrix * to_copy = result_data.pop();
+      unsigned long * to_copy = result_data.pop();
       int* dst_row = result_row.pop();
       //copy the buffer (could optimize by doing a pointer replacement maybe)
+      //((NOTE I did this in experimental))
       for(i=0;i<width;i++)
-	gsl_matrix_set(dst,*dst_row,i,gsl_matrix_get(to_copy,0,i));
+      {
+	//gsl_matrix_set(dst,*dst_row,i,gsl_matrix_get(to_copy,0,i));
+	dst->set(*dst_row,i,to_copy[i]);
+      }
+      
+      //EXPERIMENTAL
+      //this is a pointer replacement
+      //unsigned long * to_del =  dst->data[i];
+      //free(to_del);
+      //dst->data[i] = to_copy;
+
       delete dst_row;
       result_data.unshift(to_copy);
+      //EXPERIMENTAL
+      //to_copy = (unsigned long*)calloc()
       result_row.unshift(new int());
       *result_row.get(0) = -1;
     }
@@ -45,33 +58,35 @@ public:
     {
       //printf("CONVRES:ADDING BUFFER!!!\n");
       //add new data row
-      result_data.unshift(gsl_matrix_calloc(1,width));
+      //result_data.unshift(gsl_matrix_calloc(1,width));
+      result_data.unshift((unsigned long*)calloc(width,(sizeof(unsigned long))*width));
       //add the new row's index
       result_row.unshift(new int());
       *result_row.get(0) = row;
+      result_data.get(0)[column] = result;
     }
     //this allows us to recycle the multi-kilobyte buffers
     else if((*result_row.get(0))<0)
     {
       //printf("CONVRES:RECYCLING!!!\n");
-      delete result_row.shift();
-      result_row.unshift(new int());
+      result_row.unshift(result_row.shift());
       *result_row.get(0) = row;
+      result_data.get(0)[column] = result;
     }
     //the case when we're mid-row
     else
     {
       //printf("SET AT: (%i,%i)\n",(int)row,(int)column);
       //set the frontmost data row's column to be the result
-      gsl_matrix_set(result_data.get(0),0,column,result);
+      result_data.get(0)[column] = result;
     }
   }
   //last thing to be called during a convolution!!!!
   //deallocates the kilobyte buffers 
-  void flush(gsl_matrix*dst_img)
+  void flush(ARVP_Image*dst_img)
   {
     int i;
-    gsl_matrix* to_copy;
+    unsigned long* to_copy;
     int* dst_row;
     //iterate through all the result data buffers
     while(result_data.hasNext())
@@ -81,10 +96,16 @@ public:
       dst_row = result_row.pop();
       //if its row is within bounds, write it to the image
       if(*dst_row > 0 && *dst_row < (int)dst_img->size1)
+      {
 	for(i=0;i<(int)width;i++)
-	  gsl_matrix_set(dst_img,*dst_row,i,gsl_matrix_get(to_copy,0,i));
+	{
+	  //gsl_matrix_set(dst_img,*dst_row,i,gsl_matrix_get(to_copy,0,i));
+	  dst_img->set(*dst_row,i,to_copy[i]);
+	}
+      }
       //printf("CONVRES:BUFFER DELETED IN FLUSH!!!\n");
-      gsl_matrix_free(to_copy);
+      //gsl_matrix_free(to_copy);
+      free(to_copy);
       delete dst_row;
     }
   }
@@ -108,12 +129,9 @@ void gaussian(gsl_matrix*filter,float stdev)
     }
 }
 
-//TODO: implement convolutions without a (huge) buffer, via buffering values,
-//  until they are ready to be wrirtten
-//  ready to write when convolution sweeps it on the upper left corner
-//  flush also at the end
-//  buffer should be filter-center tall, image-width wide.
-//  buffer should be implemented as a circular queue.
+
+//TODO: My gsl-matrix->ARVP_Image changes stopped here
+
 //convolution that returns a new image
 void convolution(gsl_matrix* src_img, gsl_matrix* dst_img, gsl_matrix*filter,
 		 int filter_y, int filter_x,

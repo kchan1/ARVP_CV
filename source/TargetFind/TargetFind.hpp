@@ -57,11 +57,12 @@ LinkedList<TargetData> getTargets(gsl_matrix* img)
       gsl_matrix_set(img_buff,j,i,(((double)px_buff)&0xFF)<<OFFSET_R);
     }
   //find gradient
+  
   gsl_matrix * derivX = gsl_matrix_calloc(3,3);
-  derivX->set
+  derivX = 
   gsl_matrix * derivY = gsl_matrix_calloc(3,3);
   //store Gx in Green, Gy in Blue
- 
+  
   //store (a scaled) theta in Data
 
   //find boundaries in list

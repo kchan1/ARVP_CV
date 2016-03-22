@@ -1,6 +1,7 @@
 #ifndef _IMGFORMAT_HPP_
 #define _IMGFORMAT_HPP_
 #include <gsl/gsl_blas.h>
+
 const unsigned long CHAN_R = 0xFF000000;
 const int OFFSET_R = 4*6;
 const unsigned long CHAN_G = 0x00FF0000;
@@ -10,6 +11,39 @@ const int OFFSET_B = 4*2;
 const unsigned long CHAN_D = 0x000000FF;
 const int OFFSET_D = 4*0;
 const unsigned long COLOR_WHITE = 0xFFFFFFFF;
+
+class ARVP_Image
+{
+private:
+  
+public:
+  size_t width,height;
+  unsigned long ** data;
+  ARVP_Image(unsigned width, unsigned height)
+  {
+    int i;
+    this->width = width;
+    this->height = height;
+    this->data = (unsigned long**)calloc(height,sizeof(unsigned long*)*height);
+    for(i=0;i<height;i++)
+      this->data[i] = (unsigned long*)calloc(width,sizeof(unsigned long)*width);
+  }
+  ~ARVP_Image()
+  {
+    for(i=0;i<height;i++)
+      free(this->data[i]);
+    free(this->data);
+  }
+  void set(unsigned int row, unsigned int col,unsigned long val)
+  {
+    this->data[row][col] = val;
+  }
+  unsigned long get(unsigned int row, unsigned int col)
+  {
+    return this->data[row][col];
+  }
+}
+
 bool isInImage(gsl_matrix* img,int coordY,int coordX)
 {
   if(coordX<int(img->size2) && coordX>=0 && coordY<int(img->size1) && coordY >=0)
@@ -36,17 +70,8 @@ inline short int getChanD(unsigned long pixel)
 }
 
 //gets a pixel bounded by the image border
-double getBoundPixel(gsl_matrix* img,int coordY,int coordX)
+double getBoundPixel(ARVP_Image* img,int coordY,int coordX)
 {
-  /*
-  if(isInImage(img,coordY,coordX))
-  {
-    printf("COORDS: (%i,%i) = \n",coordY,coordX);
-    return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
-  }
-  */
-  
-  //else
   if(!isInImage(img,coordY,coordX))
   {
     if(coordX<0)
@@ -65,6 +90,7 @@ double getBoundPixel(gsl_matrix* img,int coordY,int coordX)
 	 (unsigned int)coordX,
 	 gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX)));
   */
-  return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
+  //return gsl_matrix_get(img,(unsigned int)(coordY),(unsigned int)(coordX));
+  return img->get((unsigned int)(coordY),(unsigned int)(coordX));
 }
 #endif

@@ -1,3 +1,14 @@
+DEPENDENCIES:
+  jpeglib, installed with:
+    sudo apt-get install libjpeg-dev
+  gsl, installed with getting and installing the gzip at:
+    wget http://mirrors.syringanetworks.net/gnu/gsl/gsl-2.1.tar.gz
+    tar -xzvf gsl-2.1.tar.gz
+    cd gsl-2.1
+    ./configure
+    make
+    sudo make install
+
 Command to compile the source:
   g++ -Wall -I/usr/local/include -c example.cpp
 

@@ -7,9 +7,12 @@ int main(int argc,char*argv[])
 {
   std::cout<<"--Testing basic image functions--\n";
 
-  const int img_rows = 1000;
-  const int img_cols = 1000;
-  gsl_matrix*img = gsl_matrix_calloc(img_rows,img_cols);
+  const int img_rows = 100;
+  const int img_cols = 100;
+  double img_arr[img_rows*img_cols];
+  //gsl_matrix*img = gsl_matrix_calloc(img_rows,img_cols);
+  gsl_matrix_view proto_img = gsl_matrix_view_array(img_arr,img_rows,img_cols);
+  gsl_matrix*img = &proto_img.matrix;
   for(unsigned int j=0;j<img->size1;j++)
     for(unsigned int i=0;i<img->size2;i++)
       gsl_matrix_set(img,j,i,i%2==0?255:0);
@@ -77,7 +80,7 @@ int main(int argc,char*argv[])
   jpeg_finish_compress(&cinfo);
   printf("Destroy Everything!\n");
   jpeg_destroy_compress(&cinfo);
-  gsl_matrix_free(img);
+  //gsl_matrix_free(img);
   gsl_matrix_free(gauss);
   return 0;
 }
