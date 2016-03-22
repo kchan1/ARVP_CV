@@ -19,18 +19,19 @@ private:
 public:
   size_t width,height;
   unsigned long ** data;
-  ARVP_Image(unsigned width, unsigned height)
+  ARVP_Image(unsigned height,unsigned width)
   {
     int i;
     this->width = width;
     this->height = height;
     this->data = (unsigned long**)calloc(height,sizeof(unsigned long*)*height);
-    for(i=0;i<height;i++)
+    for(i=0;i<(int)height;i++)
       this->data[i] = (unsigned long*)calloc(width,sizeof(unsigned long)*width);
   }
   ~ARVP_Image()
   {
-    for(i=0;i<height;i++)
+    int i;
+    for(i=0;i<(int)height;i++)
       free(this->data[i]);
     free(this->data);
   }
@@ -42,11 +43,11 @@ public:
   {
     return this->data[row][col];
   }
-}
+};
 
-bool isInImage(gsl_matrix* img,int coordY,int coordX)
+bool isInImage(ARVP_Image* img,int coordY,int coordX)
 {
-  if(coordX<int(img->size2) && coordX>=0 && coordY<int(img->size1) && coordY >=0)
+  if(coordX<int(img->width) && coordX>=0 && coordY<int(img->height) && coordY >=0)
     return true;
   else
     return false;
@@ -70,19 +71,19 @@ inline short int getChanD(unsigned long pixel)
 }
 
 //gets a pixel bounded by the image border
-double getBoundPixel(ARVP_Image* img,int coordY,int coordX)
+unsigned long getBoundPixel(ARVP_Image* img,int coordY,int coordX)
 {
   if(!isInImage(img,coordY,coordX))
   {
     if(coordX<0)
       coordX=0;
-    else if(coordX>=int(img->size2))
-      coordX=img->size2-1;
+    else if(coordX>=int(img->width))
+      coordX=img->width-1;
 
     if(coordY<0)
       coordY=0;
-    else if(coordY>=int(img->size1))
-      coordY=img->size1-1;
+    else if(coordY>=int(img->height))
+      coordY=img->height-1;
   }
   /*
   printf("COORDS: (%i,%i) = %f \n",

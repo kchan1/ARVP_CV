@@ -9,16 +9,17 @@ int main(int argc,char*argv[])
 
   const int img_rows = 100;
   const int img_cols = 100;
-  double img_arr[img_rows*img_cols];
+  //double img_arr[img_rows*img_cols];
   //gsl_matrix*img = gsl_matrix_calloc(img_rows,img_cols);
-  gsl_matrix_view proto_img = gsl_matrix_view_array(img_arr,img_rows,img_cols);
-  gsl_matrix*img = &proto_img.matrix;
-  for(unsigned int j=0;j<img->size1;j++)
-    for(unsigned int i=0;i<img->size2;i++)
-      gsl_matrix_set(img,j,i,i%2==0?255:0);
+  //gsl_matrix_view proto_img = gsl_matrix_view_array(img_arr,img_rows,img_cols);
+  //gsl_matrix*img = &proto_img.matrix;
+  ARVP_Image* img = new ARVP_Image(img_rows,img_cols);
+  for(unsigned int j=0;j<img->height;j++)
+    for(unsigned int i=0;i<img->width;i++)
+      img->set(j,i,(i+j)%2==0?255:0);
   std::cout<<"Image Diagonal:\n";
-  for(unsigned int i=0;i<img->size1&&i<img->size2;i++)
-    printf("\timg[%i,%i]=%i\n",i,i,int(gsl_matrix_get(img,i,i)));
+  for(unsigned int i=0;i<img->height&&i<img->width;i++)
+    printf("\timg[%i,%i]=%i\n",(int)i,(int)i,(int)img->get(i,i));
   
   std::cout<<"--Gaussian Test--\n";
   gsl_matrix*gauss = gsl_matrix_alloc(7,7);
@@ -42,7 +43,7 @@ int main(int argc,char*argv[])
   unsigned char img_int[img_rows*img_cols];
   for(int j=0;j<img_rows;j++)
     for(int i=0;i<img_cols;i++)
-      img_int[i+j*img_cols] = gsl_matrix_get(img,j,i);
+      img_int[i+j*img_cols] = img->get(j,i);
   //weird jpeglib commands here for compressing to a file
   printf("Writing JPEG image!\n");
   struct jpeg_compress_struct cinfo;
