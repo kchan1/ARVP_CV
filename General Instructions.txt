@@ -8,7 +8,9 @@ DEPENDENCIES:
     ./configure
     make
     sudo make install
-
+  raspicam, installed similarly, a project from a 3rd party
+    http://www.uco.es/investiga/grupos/ava/node/40
+    Instructions on site, comes out to making and installing from a zip
 Command to compile the source:
   g++ -Wall -I/usr/local/include -c example.cpp
 
@@ -17,8 +19,10 @@ Commands to add library to the path if it is not already
   export LD_LIBRARY_PATH
 
 Command for link?
+no camera parts:
   g++ -L/usr/local/lib example.o -lgsl -lgslcblas -lm -ljpeg
-
+with camera parts:
+  g++ -L/usr/local/lib example.o -lgsl -lgslcblas -lm -ljpeg -lraspicam
 *can specify -o to rename the output program
 
 Command for running C programming 
