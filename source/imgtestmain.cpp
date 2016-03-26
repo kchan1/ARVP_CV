@@ -13,7 +13,7 @@ int main(int argc,char*argv[])
   for(unsigned int j=0;j<img->height;j++)
     for(unsigned int i=0;i<img->width;i++)
       for(unsigned int k=0;k<3;k++)
-	img->set_ch(k,j,i,(i>50)?255:0);
+	img->set_ch(k,j,i,(i>50 && k==0)?255:0);
   std::cout<<"Image Diagonal:\n";
   for(unsigned int i=0;i<img->height&&i<img->width;i++)
   {
@@ -21,7 +21,7 @@ int main(int argc,char*argv[])
     printf("\timg[%i,%i]=(%i,%i,%i)\n",(int)i,(int)i,(int)px.ch[0],(int)px.ch[1],(int)px.ch[2]);
   }
   std::cout<<"--Gaussian Test--\n";
-  gsl_matrix*gauss = gsl_matrix_alloc(11,11);
+  gsl_matrix*gauss = gsl_matrix_alloc(5,5);
   gaussian(gauss,0.84089642);
   
   std::cout<<"Gaussian:\n";
@@ -34,18 +34,12 @@ int main(int argc,char*argv[])
   std::cout<<"--Convolution Test--\n";
   convolution_RGB(img,img,gauss,
 	      gauss->size1/2,gauss->size2/2);
-  /*
   std::cout<<"Image Diagonal:\n";
-  for(unsigned int i=0;i<img->size1&&i<img->size2;i++)
-    printf("\timg[%i,%i]=%i\n",i,i,int(gsl_matrix_get(img,i,i)));
-  */
-  //img buffer for later use
-  /*
-  unsigned char img_int[img_rows*img_cols];
-  for(int j=0;j<img_rows;j++)
-    for(int i=0;i<img_cols;i++)
-      img_int[i+j*img_cols] = img->get(j,i);
-  */
+  for(unsigned int i=0;i<img->height&&i<img->width;i++)
+  {
+    pixel_RGB px = img->get(i,i);
+    printf("\timg[%i,%i]=(%i,%i,%i)\n",(int)i,(int)i,(int)px.ch[0],(int)px.ch[1],(int)px.ch[2]);
+  }
   //weird jpeglib commands here for compressing to a file
   printf("Writing JPEG image!\n");
   struct jpeg_compress_struct cinfo;

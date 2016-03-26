@@ -107,6 +107,7 @@ void gaussian(gsl_matrix*filter,float stdev)
   double value = 0;
   org_x = filter->size1/2;
   org_y = filter->size2/2;
+  double sum;
   for(j=0;j<filter->size1;j++)
     for(i=0;i<filter->size2;i++)
     {
@@ -115,7 +116,10 @@ void gaussian(gsl_matrix*filter,float stdev)
 	       pow(j-org_y,2))/(2.0*pow(stdev,2)));
       //printf("GAUSS VALUE (%i,%i): %f",i,j,value);
       gsl_matrix_set(filter,j,i,value);
+      sum += value;
     }
+  printf("SUM: %f",sum);
+  gsl_matrix_scale(filter,1.0/sum);
 }
 
 //convolution on a single channel
@@ -177,7 +181,7 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
   //i,j for image traverse, k for channels, u,v for filter traverse
   size_t i,j,k,u,v;
   //newPx is to buffer the convolution result
-  pixel_RGB new_px;
+  double new_px[3];
   //create a buffer to store convolution results that cannot yet be written
   ConvResult result_buff(src_img->width);
   //j scans down the rows, i scans across the columns
@@ -189,20 +193,23 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
     {
       //printf("    Px (%i,%i)\n",(int)j,(int)i);
       for(k=0;k<3;k++)
-	new_px.ch[k] = 0;
+	new_px[k] = 0;
       //v scans down the rows, u scans across the columns
       for(v=0;v<filter->size1;v++)
 	for(u=0;u<filter->size2;u++)
 	{
 	  //apply filter element to image element
 	  for(k=0;k<3;k++)
-	    new_px.ch[k] += getBoundChannel(src_img,k,
+	    new_px[k] += getBoundChannel(src_img,k,
 					    j-filter_y+v,
 					    i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	}
       //buffer the final result
-      result_buff.bufferResult(new_px,j,i);
+      pixel_RGB temp;
+      for(k=0;k<3;k++)
+	temp.ch[k] = (unsigned char)new_px[k];
+      result_buff.bufferResult(temp,j,i);
     }
     //write a (if any) rows the convolution will never read again
     result_buff.writeClear(dst_img,j-filter_y);
