@@ -1,6 +1,5 @@
 #ifndef _LINKEDLIST_HPP_
 #define _LINKEDLIST_HPP_
-#include <gsl/gsl_blas.h>
 template <class Elem>
 class LinkedList
 {
@@ -32,8 +31,6 @@ public:
   bool hasNext();
   void debug_print();
 };
-
-//template class LinkedList<gsl_matrix>;
 
 template<class Elem>
 void LinkedList<Elem>::push(Elem* e)
