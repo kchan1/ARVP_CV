@@ -9,18 +9,17 @@ int main(int argc,char*argv[])
 
   const int img_rows = 100;
   const int img_cols = 100;
-  //double img_arr[img_rows*img_cols];
-  //gsl_matrix*img = gsl_matrix_calloc(img_rows,img_cols);
-  //gsl_matrix_view proto_img = gsl_matrix_view_array(img_arr,img_rows,img_cols);
-  //gsl_matrix*img = &proto_img.matrix;
   ARVP_Image* img = new ARVP_Image(img_rows,img_cols);
   for(unsigned int j=0;j<img->height;j++)
     for(unsigned int i=0;i<img->width;i++)
-      img->set(j,i,(i+j)%2==0?255:0);
+      for(unsigned int k=0;k<3;k++)
+	img->set_ch(k,j,i,(i+j)%2==0?255:0);
   std::cout<<"Image Diagonal:\n";
   for(unsigned int i=0;i<img->height&&i<img->width;i++)
-    printf("\timg[%i,%i]=%i\n",(int)i,(int)i,(int)img->get(i,i));
-  
+  {
+    pixel_RGB px = img->get(i,i);
+    printf("\timg[%i,%i]=(%i,%i,%i)\n",(int)i,(int)i,(int)px.ch[0],(int)px.ch[1],(int)px.ch[2]);
+  }
   std::cout<<"--Gaussian Test--\n";
   gsl_matrix*gauss = gsl_matrix_alloc(7,7);
   gaussian(gauss,0.84089642);
@@ -30,20 +29,20 @@ int main(int argc,char*argv[])
     printf("\tgauss[%i,%i]=%0.10f\n",i,i,gsl_matrix_get(gauss,i,i));
   
   std::cout<<"--Convolution Test--\n";
-  convolution(img,img,gauss,
-	      gauss->size1/2,gauss->size2/2,
-	      COLOR_WHITE,0,
-	      COLOR_WHITE,0);
+  convolution_RGB(img,img,gauss,
+	      gauss->size1/2,gauss->size2/2);
   /*
   std::cout<<"Image Diagonal:\n";
   for(unsigned int i=0;i<img->size1&&i<img->size2;i++)
     printf("\timg[%i,%i]=%i\n",i,i,int(gsl_matrix_get(img,i,i)));
   */
   //img buffer for later use
+  /*
   unsigned char img_int[img_rows*img_cols];
   for(int j=0;j<img_rows;j++)
     for(int i=0;i<img_cols;i++)
       img_int[i+j*img_cols] = img->get(j,i);
+  */
   //weird jpeglib commands here for compressing to a file
   printf("Writing JPEG image!\n");
   struct jpeg_compress_struct cinfo;
@@ -62,8 +61,8 @@ int main(int argc,char*argv[])
   cinfo.image_width = img_cols;      /* image width and height, in pixels */
   cinfo.image_height = img_rows;
   printf("Width & Height Set\n");
-  cinfo.input_components = 1;     /* # of color components per pixel */
-  cinfo.in_color_space = JCS_GRAYSCALE; /* colorspace of input image */
+  cinfo.input_components = 3;     /* # of color components per pixel */
+  cinfo.in_color_space = JCS_RGB; /* colorspace of input image */
   printf("Colors Set\n");
   jpeg_set_defaults(&cinfo);
   /* Make optional parameter settings here */
@@ -71,10 +70,10 @@ int main(int argc,char*argv[])
   jpeg_start_compress(&cinfo, TRUE);
   JSAMPROW row_pointer[1];	/* pointer to a single row */
   int row_stride;			/* physical row width in buffer */
-  row_stride = img_cols;	/* JSAMPLEs per row in image_buffer */
+  row_stride = img_cols*3;	/* JSAMPLEs per row in image_buffer */
   printf("Scanning... ");
   while (cinfo.next_scanline < cinfo.image_height) {
-    row_pointer[0] = &(img_int[cinfo.next_scanline * row_stride]);
+    row_pointer[0] = &(img->data[cinfo.next_scanline * row_stride]);
     jpeg_write_scanlines(&cinfo, row_pointer, 1);
   }
   printf("Done!\n");
