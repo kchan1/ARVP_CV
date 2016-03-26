@@ -197,8 +197,8 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 	  //apply filter element to image element
 	  for(k=0;k<3;k++)
 	    new_px.ch[k] += getBoundChannel(src_img,k,
-					 j-filter_y+v,
-					 i-filter_x+u)
+					    j-filter_y+v,
+					    i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	}
       //buffer the final result
@@ -253,4 +253,6 @@ void convolution_buffered(ARVP_Image* src_img, ARVP_Image* dst_img, gsl_matrix*f
   return;
 }
 */
+
+
 #endif
