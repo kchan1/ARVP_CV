@@ -3,6 +3,7 @@
 #include "imgops.hpp"
 #include <gsl/gsl_blas.h>
 #include <jpeglib.h>
+#include <cstddef>
 int main(int argc,char*argv[])
 {
   std::cout<<"--Testing basic image functions--\n";

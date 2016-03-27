@@ -5,6 +5,9 @@
 #include <math.h>
 #include <gsl/gsl_blas.h>
 
+const int bin_thres[] = {100,200,150};
+const int dbl_thres[] = {10,20};
+
 class ConvResult
 {
 private:
@@ -122,10 +125,30 @@ void gaussian(gsl_matrix*filter,float stdev)
   gsl_matrix_scale(filter,1.0/sum);
 }
 
+void sobel_x(gsl_matrix*filter)
+{
+  if(filter->size1!=3 || filter->size2!=3)
+    return;
+  int i,j;
+  short int sobel_arr[] = {-1,0,1,
+			   -2,0,2,
+			   -1,0,1};
+  for(j=0;j<3;j++)
+    for(i=0;i<3;i++)
+      gsl_matrix_set(filter,j,i,sobel_arr[j*3+i]);
+}
+void sobel_y(gsl_matrix*filter)
+{
+  if(filter->size1!=3 || filter->size2!=3)
+    return;
+  sobel_x(filter);
+  gsl_matrix_transpose(filter);
+}
+
 //convolution on a single channel
-void convolution_single(ARVP_Image* src_img, ARVP_Image* dst_img, 
-		 gsl_matrix*filter, int filter_y, int filter_x,
-		 int channel)
+void convolution_single(ARVP_Image* src_img,int src_channel,
+			ARVP_Image* dst_img,int dst_channel,
+			gsl_matrix*filter, int filter_y, int filter_x)
 {
   //error check that the images are aligned
   if(src_img->height != dst_img->height || src_img->width != dst_img->width)
@@ -154,14 +177,14 @@ void convolution_single(ARVP_Image* src_img, ARVP_Image* dst_img,
 	for(u=0;u<filter->size2;u++)
 	{
 	  //apply filter element to image element
-	  new_ch += getBoundChannel(src_img,channel,
+	  new_ch += getBoundChannel(src_img,src_channel,
 				    j-filter_y+v,
 				    i-filter_x+u)
 	  *gsl_matrix_get(filter,v,u);
 	}
       //buffer the final result
       //the new_px is just so we can see the old_px as an array
-      old_px.ch[channel] = new_ch;
+      old_px.ch[dst_channel] = new_ch;
       result_buff.bufferResult(old_px,j,i);
     }
     //write a (if any) rows the convolution will never read again
@@ -201,8 +224,8 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 	  //apply filter element to image element
 	  for(k=0;k<3;k++)
 	    new_px[k] += getBoundChannel(src_img,k,
-					    j-filter_y+v,
-					    i-filter_x+u)
+					 j-filter_y+v,
+					 i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	}
       //buffer the final result
@@ -218,48 +241,174 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
   result_buff.flush(dst_img);
 }
 
-/*
-//convolution, overwites destination on the channel
-//convolution in place, overwrites image
-void convolution_buffered(ARVP_Image* src_img, ARVP_Image* dst_img, gsl_matrix*filter,
-		 int filter_x, int filter_y,
-		 unsigned long src_channel_width, int src_channel_offset,
-		 unsigned long dst_channel_width, int dst_channel_offset)
+void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
 {
-  size_t i,j,u,v;
-  //create a buffer to store convolution results
-  //gsl_matrix* img_buff = gsl_matrix_calloc(src_img->size1,src_img->size2);
-  ARVP_Image * img_buff = new ARVP_Image(src_img->height,src_img->width);
-  //j scans down the rows, i scans across the columns
+  size_t i,j,k,u,v;
+  ARVP_Image* img_buff = dst_img;
+  pixel_RGB px_buff;
+  double ch_buff;
+  //do a threshold
+  //j scans down the rows, i scans down the columns
   for(j=0;j<src_img->height;j++)
     for(i=0;i<src_img->width;i++)
     {
-      double newPx = 0;
-      //v scans down the rows, u scans across the columns
-      for(v=0;v<filter->size1;v++)
-	for(u=0;u<filter->size2;u++)
-	{
-	  //apply filter element to image element
-	  newPx += (((unsigned long)getBoundPixel(src_img,
-					j-filter_y+v,
-					i-filter_x+u)
-		     >> src_channel_offset) & src_channel_width)
-	    *gsl_matrix_get(filter,v,u);
-	}
-      //gsl_matrix_set(img_buff,j,i,(((int)newPx)&dst_channel_width)<<dst_channel_offset);
-      img_buff->set(j,i,(((unsigned long)newPx)&dst_channel_width)<<dst_channel_offset);
+      for(k=0;k<3;k++)
+      {
+	//thresholding
+	if(src_img->get_ch(k,j,i)>=bin_thres[k])
+	  px_buff.ch[k]=255;
+	else
+	  px_buff.ch[k]=0;
+      }
+      img_buff->set(j,i,px_buff);
     }
-  //copy the buffer into dst_img
+  //do canny edge detection
+  //use a 5x5 to blur, stdev = 1 
+  gsl_matrix*gauss = gsl_matrix_alloc(5,5);
+  gaussian(gauss,2);
+  //blur the image
+  convolution_RGB(img_buff,img_buff,gauss,5/2,5/2);
+  //deallocate the gaussian filter because it never gets used again
+  gsl_matrix_free(gauss);
+  //flatten back to grayscale into the red channel
   for(j=0;j<img_buff->height;j++)
     for(i=0;i<img_buff->width;i++)
     {
-      //gsl_matrix_set(dst_img,j,i,(unsigned long)img_buff->get(j,i));
-      dst_img->set(j,i,img_buff->get(j,i));
+      ch_buff = 0;
+      ch_buff += 0.2989*img_buff->get_ch(0,j,i);
+      ch_buff += 0.5870*img_buff->get_ch(1,j,i);
+      ch_buff += 0.1140*img_buff->get_ch(2,j,i);
+      img_buff->set_ch(0,j,i,(unsigned char)ch_buff);
     }
-  delete img_buff;
-  return;
+  //find gradient
+  
+  //a pointer for finding the gradient
+  gsl_matrix * deriv = gsl_matrix_calloc(3,3);
+  //store Gx in Green, Gy in Blue
+  sobel_x(deriv);
+  convolution_single(img_buff,0,img_buff,1,deriv,1,1);
+  //transpose of sobel x is sobel y
+  gsl_matrix_transpose(deriv);  
+  convolution_single(img_buff,0,img_buff,2,deriv,1,1);
+  //free the deriv matrix
+  gsl_matrix_free(deriv);
+  //store G in Green, reduced theta in Blue
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+    {
+      pixel_RGB px = img_buff->get(j,i);
+      double Gx = pow((signed char)px.ch[1],2);
+      double Gy = pow((signed char)px.ch[2],2);
+      double G = sqrt(pow(Gx,2) + pow(Gy,2));
+      unsigned char theta = atan2(Gx,Gy);
+      //reduce theta, 0->0d, 1->45d, 2->90d, 3->135d
+      if(theta >= M_PI)
+	theta -= M_2_PI;
+      if(abs(theta)<=M_PI_4/2)
+	theta = 0;
+      else if(abs(theta)<=M_PI_4+M_PI_4/2)
+	theta = 1;
+      else if(abs(theta)<M_PI_2+M_PI_4/2)
+	theta = 2;
+      else if(abs(theta)<M_PI_2+3*M_PI_4/2)
+	theta = 3;
+      else
+	theta = 0;
+      img_buff->set_ch(1,j,i,(unsigned char)G);
+      img_buff->set_ch(2,j,i,theta);
+    }
+  //nonmax suppression
+  bool * is_max = new bool(img_buff->height*img_buff->width);
+  unsigned char theta;
+  unsigned char G_curr,G_pos,G_neg;
+  //figure out which pixels are non-max
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+    {
+      theta = img_buff->get_ch(2,j,i);
+      switch(theta)
+      {
+      default:
+      case 0:
+	G_pos = abs((signed char)getBoundChannel(img_buff,1,j,i+1));
+	G_neg = abs((signed char)getBoundChannel(img_buff,1,j,i-1));
+	break;
+      case 1:
+	G_pos = abs((signed char)getBoundChannel(img_buff,1,j-1,i+1));
+	G_neg = abs((signed char)getBoundChannel(img_buff,1,j+1,i-1));
+	break;
+      case 2:
+	G_pos = abs((signed char)getBoundChannel(img_buff,1,j-1,i));
+	G_neg = abs((signed char)getBoundChannel(img_buff,1,j+1,i));
+	break;
+      case 3:
+	G_pos = abs((signed char)getBoundChannel(img_buff,1,j-1,i-1));
+	G_neg = abs((signed char)getBoundChannel(img_buff,1,j+1,i+1));
+	break;
+      }
+      G_curr = abs((signed char)getBoundChannel(img_buff,1,j,i));
+      if(G_curr > G_pos && G_curr > G_neg)
+	is_max[j*img_buff->width+i] = true;
+      else
+	is_max[j*img_buff->width+i] = false;
+    }//end for
+  //suppress all the non-max
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+    {
+      if(!is_max[j*img_buff->width+i])
+      {
+	img_buff->set_ch(0,j,i,0);
+	img_buff->set_ch(1,j,i,0);
+      }
+    }
+  //double threshold, results in blue
+  //0 is supress, 1 is weak, 2 is strong
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+    {
+      if(abs((signed char)img_buff->get_ch(1,j,i))>=dbl_thres[1])
+	img_buff->set_ch(2,j,i,2);
+      else if(abs((signed char)img_buff->get_ch(1,j,i))>=dbl_thres[0])
+	img_buff->set_ch(2,j,i,1);
+      else
+      {
+	img_buff->set_ch(0,j,i,0);
+	img_buff->set_ch(1,j,i,0);
+	img_buff->set_ch(2,j,i,0);
+      }
+    }
+  //edge tracking by hysteresis
+  //all weak values evaluated for strong neighbors
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+    {
+      if(img_buff->get_ch(3,j,i)==2)
+	is_max[j*img_buff->width+i] = true;
+      else if(img_buff->get_ch(3,j,i)==1)
+      {
+	is_max[j*img_buff->width+i] = false;
+	for(v=0;v<3;v++)
+	  for(u=0;u<3;u++)
+	    if(getBoundChannel(img_buff,2,j+v,i+u)==2)
+	      is_max[j*img_buff->width+i] = true;
+      }
+    }
+  //finish the canny edge detection
+  pixel_RGB edge;
+  for(i=0;i<3;i++)
+    edge.ch[i]=255;
+  pixel_RGB not_edge;
+  for(i=0;i<3;i++)
+    not_edge.ch[i]=0;
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+      if(is_max[j*img_buff->width+i])
+	img_buff->set(j,i,edge);
+      else
+	img_buff->set(j,i,not_edge);
+  delete[] is_max;
 }
-*/
 
 
 #endif
