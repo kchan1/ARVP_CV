@@ -1,24 +1,16 @@
+#include <gsl/gsl_blas.h>
 #ifndef _IMGFORMAT_HPP_
 #define _IMGFORMAT_HPP_
-#include <gsl/gsl_blas.h>
-
+//this lets us slice up 
 typedef struct pixel_RGB{unsigned char ch[3];} pixel_RGB;
-//const unsigned long CHAN_R = 0xFF0000;
-//const int OFFSET_R = 4*6;
-//const unsigned long CHAN_G = 0x00FF00;
-//const int OFFSET_G = 4*4;
-//const unsigned long CHAN_B = 0x0000FF;
-//const int OFFSET_B = 4*2;
-
-//const unsigned long CHAN_D = 0x000000FF;
-//const int OFFSET_D = 4*0;
-const unsigned long COLOR_WHITE = 0xFFFFFF;
+const pixel_RGB COLOR_WHITE = {.ch = {0xFF,0xFF,0xFF}};
 
 class ARVP_Image
 {
 private:
-  int CHANNELS;
+  
 public:
+  int CHANNELS;
   unsigned char * data;
   pixel_RGB * px_view;
   size_t width,height,channels;
