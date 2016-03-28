@@ -44,14 +44,18 @@ public:
     free(this->data);
     */
   }
-  void debugPrint()
+  void debugPrint(bool sign0=false,bool sign1=false,bool sign2=false)
   {
     pixel_RGB px;
     printf("Image Diagonal:\n");
-    for(unsigned int i=0;i<this->height() && i<this->width();i++)
+    for(unsigned int i=0;i<this->height() && i<this->width();i+=1)
     {
       px = this->get(i,i);
-      printf("DEBUG: img[%i,%i]=(%i,%i,%i)\n",(int)i,(int)i,(int)px.ch[0],(signed char)px.ch[1],(int)px.ch[2]);
+      printf("DEBUG: img[%i,%i]=(%i,%i,%i)\n",
+	     (int)i,(int)i,
+	     sign0?(signed char)px.ch[0]:(unsigned char)px.ch[0],
+	     sign1?(signed char)px.ch[1]:(unsigned char)px.ch[1],
+	     sign2?(signed char)px.ch[2]:(unsigned char)px.ch[2]);
     }
   }
   void set(unsigned int row, unsigned int col,pixel_RGB val)
