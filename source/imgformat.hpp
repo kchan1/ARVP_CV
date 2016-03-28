@@ -88,8 +88,10 @@ pixel_RGB getBoundPixel(ARVP_Image* img,int coordY,int coordX)
   }
   return img->get((unsigned int)(coordY),(unsigned int)(coordX));
 }
-unsigned long getBoundChannel(ARVP_Image* img,unsigned int ch,int coordY,int coordX)
+unsigned char getBoundChannel(ARVP_Image* img,unsigned int ch,int targY,int targX)
 {
+  int coordY=targY;
+  int coordX=targX;
   if(!isInImage(img,coordY,coordX))
   {
     if(coordX<0)
@@ -102,6 +104,7 @@ unsigned long getBoundChannel(ARVP_Image* img,unsigned int ch,int coordY,int coo
     else if(coordY>=int(img->height))
       coordY=img->height-1;
   }
+  
   return img->get_ch(ch,(unsigned int)(coordY),(unsigned int)(coordX));
 }
 #endif

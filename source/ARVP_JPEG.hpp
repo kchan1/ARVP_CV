@@ -57,49 +57,93 @@ bool saveARVP_Image(ARVP_Image * src_img,const char*filename)
 
 ARVP_Image* openJPEG(const char* filename)
 {
+  printf("OPENING IMAGE\n");
   struct jpeg_decompress_struct cinfo;
   struct jpeg_error_mgr jerr;
   
   JSAMPARRAY buffer;		/* Output row buffer */
   int row_stride;		/* physical row width in output buffer */
   unsigned int i,j;
-  
+  //printf("OPENING INPUT FILE\n");
   cinfo.err = jpeg_std_error(&jerr);
   FILE * infile;
   if ((infile = fopen(filename, "rb")) == NULL) {
     fprintf(stderr, "can't open %s\n", filename);
     exit(1);
   }
+  //printf("INITIALIZING PARAMETERS\n");
   jpeg_create_decompress(&cinfo);
   jpeg_stdio_src(&cinfo, infile);
   jpeg_read_header(&cinfo, TRUE);
   jpeg_start_decompress(&cinfo);
-  //unsigned char*buffer = new unsigned char[cinfo.output_width];
   /* JSAMPLEs per row in output buffer */
   row_stride = cinfo.output_width * cinfo.output_components; 
   /* Make a one-row-high sample array that will go away when done with image */
-  buffer = (*cinfo.mem->alloc_sarray)
-    ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+  //printf("CREATING BUFFER\n");
+  
+  //buffer = (*cinfo.mem->alloc_sarray)
+  //  ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+  unsigned char * rowbuff = new unsigned char[row_stride];
+  buffer = &rowbuff;
+  //printf("CREATING DATA\n");
   unsigned char*data = new unsigned char[cinfo.output_width*cinfo.output_height*3];
+  //printf("LOOPING TO READ...\n");  
   while(cinfo.output_scanline < cinfo.output_height)
   {
+    int scanned_line = cinfo.output_scanline;
     jpeg_read_scanlines(&cinfo, buffer, 1);
-    //put_scanline_someplace(rowstride);
+    //printf("%i\n",cinfo.output_scanline);
+    //printf("DECIDING WHERE TO PUT IT\n");
+    //put_scanline_someplace(buffer,rowstride);
+    /*
+    printf("BUFFER: (");
+    for(i=0;(int)i<row_stride;i++)
+    {
+      printf("%i ",buffer[0][i]);
+    }
+    printf(") \n");
+    */
     if(cinfo.out_color_components==3)
     {
-      for(i=0;i<cinfo.output_width;i++)
-	for(j=0;j<3;i++)
-	  data[cinfo.output_scanline*cinfo.output_width+i+j] = buffer[0][i];
+      for(i=0;(int)i<row_stride;i++)
+      {
+	/*
+	printf("d[%i,%i,%i]=d[%i]=b[%i]=%i\n",
+	       i%3,
+	       scanned_line,
+	       i/3,
+	       (scanned_line*cinfo.output_width*3)+i,
+	       i,buffer[0][i]);
+	*/
+	data[(scanned_line*cinfo.output_width*3)+i] = buffer[0][i];
+      }
     }
     else
     {
       for(i=0;i<cinfo.output_width;i++)
-	data[cinfo.output_scanline*cinfo.output_width+i]=buffer[0][i];
+      {
+	for(j=0;j<3;j++)
+	{
+	  //printf("d[%i,%i]=b[%i]=%i ",
+      	  //	 (scanned_line*cinfo.output_width+i)*3+j,j,i,buffer[0][i]);
+	  data[(scanned_line*cinfo.output_width+i)*3+j] = buffer[0][i];
+	}
+	printf("\n");
+      }
     }
   }
-  ARVP_Image*dst_img = new ARVP_Image(cinfo.output_height,cinfo.output_width,data);
+  //printf("\n");
+  //printf("DESTROYING SETUP\n");  
+  ARVP_Image*dst_img = new ARVP_Image(cinfo.output_height,
+				      cinfo.output_width,
+				      data);  
+  //printf("FINISHING\n");
   jpeg_finish_decompress(&cinfo);
+  //printf("DESTROYING\n"); 
   jpeg_destroy_decompress(&cinfo);
+  //printf("DELETEBUFF\n");
+  delete[] rowbuff;
+  //printf("RETURNING\n");
   return dst_img;
 }
 #endif
