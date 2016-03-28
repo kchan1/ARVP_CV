@@ -11,7 +11,7 @@ int main(int argc,char*argv[])
   std::cout<<"--Testing has begun on opening an image--\n";
   ARVP_Image*test_img = openJPEG(filename);
   printf("Opening image %s\n",filename);
-  printf("Image of size w,h: %i,%i\n",(int)test_img->width,(int)test_img->height);
+  printf("Image of size w,h: %i,%i\n",(int)test_img->width(),(int)test_img->height());
   /*
   printf("Image Diagonal:\n");
   for(int j=0;j<(int)test_img->height&&j<(int)test_img->width;j++)
