@@ -44,7 +44,7 @@ public:
     }
   }
   //buffers a single result, may create a new buffer
-  void bufferResmult(pixel_RGB result,int row,int column)
+  void bufferResult(pixel_RGB result,int row,int column)
   {
     //case of needing to add a new row, when there are no rows, or the rows do not match
     if(result_row.getSize()==0 || (*(result_row.get(0))!=row && 
