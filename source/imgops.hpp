@@ -6,7 +6,7 @@
 #include <gsl/gsl_blas.h>
 
 const int bin_thres[] = {100,200,150};
-const int dbl_thres[] = {20,50};
+const int dbl_thres[] = {5,10};
 
 class ConvResult
 {
@@ -185,7 +185,7 @@ void convolution_single(ARVP_Image* src_img,int src_channel,
 						   i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	  }
-      printf("Pixel (%i,%i,%i) = %f\n",(int)dst_channel,(int)j,(int)i,new_px[dst_channel]);
+      //printf("Pixel (%i,%i,%i) = %f\n",(int)dst_channel,(int)j,(int)i,new_px[dst_channel]);
       //buffer the final result
       pixel_RGB temp;
       for(k=0;k<3;k++)
@@ -234,7 +234,7 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 					 i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	}
-      printf("Pixel (%i,%i) = (%f,%f,%f)\n",(int)j,(int)i,new_px[0],new_px[1],new_px[2]);
+      //printf("Pixel (%i,%i) = (%f,%f,%f)\n",(int)j,(int)i,new_px[0],new_px[1],new_px[2]);
       //buffer the final result
       pixel_RGB temp;
       for(k=0;k<3;k++)
