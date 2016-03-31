@@ -2,12 +2,15 @@
 #define _IMAGEOPS_HPP_
 #include "imgformat.hpp"
 #include "LinkedList.hpp"
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <gsl/gsl_blas.h>
-
+#include <iostream>
 const int bin_thres[] = {100,200,150};
-const int dbl_thres[] = {5,10};
-
+const int dbl_thres[] = {3,20};
+const double PI = 3.14159265359;
+const double PI_2 = 1.57079632679;
+const double PI_4 = 0.78539816339;
 class ConvResult
 {
 private:
@@ -253,20 +256,36 @@ double simplifyTheta(double theta)
 {
   double simple = 0;
   //center 0
-  if(abs(theta)<=M_PI_4/2)
+  //if(abs(theta)<=M_PI_4/2.0)
+  if(fabs(theta)<=PI_4/2.0)
+  {
+    //printf("\tTHETA %f <= %f\n",fabs(theta),PI_4/2);
     simple = 0;
+  }
   //center PI/4
-  else if(abs(theta)<=M_PI_4+M_PI_4/2)
+  else if(fabs(theta)<=PI_4+PI_4/2.0)
+  {
+    //printf("\tTHETA %f <= %f\n",fabs(theta),PI_4+PI_4/2);
     simple = 1;
+  }
   //center PI/2
-  else if(abs(theta)<=M_PI_2+M_PI_4/2)
+  else if(fabs(theta)<=PI_2+PI_4/2.0)
+  {
+    //printf("\tTHETA %f <= %f\n",fabs(theta),PI_2+PI_4/2.0);
     simple = 2;
+  }
   //center 3*PI/4
-  else if(abs(theta)<=3*M_PI_4+M_PI_4/2)
+  else if(fabs(theta)<=3*PI_4+PI_4/2.0)
+  {
+    //printf("\tTHETA %f <= %f\n",fabs(theta),3*PI_4+PI_4/2.0);
     simple = 3;
+  }
   else
+  {
+    //printf("\tTHETA %f > %f\n",fabs(theta),3*PI_4+PI_4/2.0);
     simple = 0;
-  printf("THETA %f -> %f\n",theta,simple);
+  }
+  //printf("\tTHETA %f -> %f\n",theta,simple);
   return simple;
 }
 
@@ -345,8 +364,10 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       else
 	theta = atan2(Gy,Gx);
       //reduce theta, 0->0d, 1->45d, 2->90d, 3->135d
+      //if(theta!=0)
+      //  printf("arctan(%f/%f) = %f deg\n",Gy,Gx,theta*180/M_PI);
       theta = simplifyTheta(theta);
-      
+      //printf("\t=> %f\n",theta);
       img_buff->set_ch(1,j,i,(unsigned char)(G*255/180));
       img_buff->set_ch(2,j,i,(unsigned char)theta);
     }
@@ -419,7 +440,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
 	img_buff->set_ch(1,j,i,0);
       }
       else
-	printf("%i,%i MAX!\n",(int)j,(int)i);
+	;//printf("%i,%i MAX!\n",(int)j,(int)i);
     }
   //img_buff->debugPrint();
   printf("DOUBLE THRESHOLD\n");   
