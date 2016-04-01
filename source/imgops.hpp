@@ -125,7 +125,7 @@ void gaussian(gsl_matrix*filter,float stdev)
       gsl_matrix_set(filter,j,i,value);
       sum += value;
     }
-  printf("SUM: %f",sum);
+  //printf("SUM: %f",sum);
   gsl_matrix_scale(filter,1.0/sum);
 }
 
@@ -313,7 +313,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       img_buff->set(j,i,px_buff);
     }
   */
-  printf("BLURRING\n");  
+  //printf("BLURRING\n");  
   //use a 5x5 to blur, stdev = 1 
   gsl_matrix*gauss = gsl_matrix_alloc(5,5);
   gaussian(gauss,1.4);
@@ -321,7 +321,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   convolution_RGB(img_buff,img_buff,gauss,5/2,5/2);
   //deallocate the gaussian filter because it never gets used again
   gsl_matrix_free(gauss);
-  printf("FLATTENING\n");  
+  //printf("FLATTENING\n");  
   //flatten back to grayscale into the red channel
   for(j=0;j<img_buff->height;j++)
     for(i=0;i<img_buff->width;i++)
@@ -332,7 +332,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       ch_buff += img_buff->get_ch(2,j,i)/3;
       img_buff->set_ch(0,j,i,(unsigned char)ch_buff);
     }
-  printf("GRADIENT\n");  
+  //printf("GRADIENT\n");  
   //find gradient
   
   //a pointer for finding the gradient
@@ -346,8 +346,8 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   convolution_single(img_buff,0,img_buff,2,deriv,1,1);
   //free the deriv matrix
   gsl_matrix_free(deriv);
-  img_buff->debugPrint(false,true,true);
-  printf("GRADIENT CRUNCHING!!!\n");
+  //img_buff->debugPrint(false,true,true);
+  //printf("GRADIENT CRUNCHING!!!\n");
   //store G in Green, reduced theta in Blue
   pixel_RGB px;
   double Gx,Gy,G,theta;
@@ -372,13 +372,13 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       img_buff->set_ch(2,j,i,(unsigned char)theta);
     }
   //img_buff->debugPrint(false,false,false);
-  printf("NONMAX SUPPRESSION\n");  
+  //printf("NONMAX SUPPRESSION\n");  
   //nonmax suppression
   bool * is_max = new bool[img_buff->height*img_buff->width];
   //unsigned char theta;
   unsigned char G_curr,G_pos,G_neg;
   //figure out which pixels are non-max
-  printf("MAX FINDING LOOP\n");
+  //printf("MAX FINDING LOOP\n");
   //img_buff->debugPrint(false,true,false);
   for(j=0;j<img_buff->height;j++)
     for(i=0;i<img_buff->width;i++)
@@ -429,7 +429,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       */
       //printf("\tend\n");
     }//end for
-  printf("ACTUAL SUPRESSION\n");  
+  //printf("ACTUAL SUPRESSION\n");  
   //suppress all the non-max
   for(j=0;j<img_buff->height;j++)
     for(i=0;i<img_buff->width;i++)
@@ -443,7 +443,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
 	;//printf("%i,%i MAX!\n",(int)j,(int)i);
     }
   //img_buff->debugPrint();
-  printf("DOUBLE THRESHOLD\n");   
+  //printf("DOUBLE THRESHOLD\n");   
   //double threshold, results in blue
   //0 is supress, 1 is weak, 2 is strong
   for(j=0;j<img_buff->height;j++)
@@ -463,7 +463,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
 	img_buff->set_ch(2,j,i,0);
       }
     }
-  printf("EDGE TRACKING BY HYSTERESIS\n");   
+  //printf("EDGE TRACKING BY HYSTERESIS\n");   
   
   //edge tracking by hysteresis
   //all weak values evaluated for strong neighbors
@@ -498,9 +498,9 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
 	img_buff->set(j,i,edge);
       else
 	img_buff->set(j,i,not_edge);
-  printf("DELETING LEFTOVER BUFFER\n");  
+  //printf("DELETING LEFTOVER BUFFER\n");  
   delete[] is_max;
-  printf("RETURN\n");    
+  //printf("RETURN\n");    
 }
 
 
