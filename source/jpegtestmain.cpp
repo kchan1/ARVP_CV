@@ -11,7 +11,7 @@ int main(int argc,char*argv[])
   std::cout<<"--Testing has begun on opening an image--\n";
   ARVP_Image*test_img = openJPEG(filename);
   printf("Opening image %s\n",filename);
-  printf("Image of size w,h: %i,%i\n",(int)test_img->width(),(int)test_img->height());
+  printf("Image of size w,h: %i,%i\n",(int)test_img->width,(int)test_img->height);
   
   printf("Edge detecting the crisp image\n");
   cannyEdgeDetection(test_img,test_img);

@@ -18,10 +18,10 @@ bool saveARVP_Image(ARVP_Image * src_img,const char*filename)
   //printf("Destination Set\n");
   cinfo.err = jpeg_std_error(&jerr);
   //printf("Error Set\n");
-  cinfo.image_width = src_img->width();      /* image width and height, in pixels */
-  cinfo.image_height = src_img->height();
+  cinfo.image_width = src_img->width;      /* image width and height, in pixels */
+  cinfo.image_height = src_img->height;
   //printf("Width & Height Set\n");
-  if(src_img->channels() == 3)
+  if(src_img->channels == 3)
   {
     cinfo.input_components = 3;     /* # of color components per pixel */
     cinfo.in_color_space = JCS_RGB; /* colorspace of input image */
@@ -38,10 +38,10 @@ bool saveARVP_Image(ARVP_Image * src_img,const char*filename)
   jpeg_start_compress(&cinfo, TRUE);
   JSAMPROW row_pointer[1];	/* pointer to a single row */
   int row_stride;	        /* physical row width in buffer */
-  if(src_img->channels() == 3)
-    row_stride = src_img->width()*3;	/* JSAMPLEs per row in image_buffer */
+  if(src_img->channels == 3)
+    row_stride = src_img->width*3;	/* JSAMPLEs per row in image_buffer */
   else
-    row_stride = src_img->width();
+    row_stride = src_img->width;
   //printf("Scanning... ");
   while (cinfo.next_scanline < cinfo.image_height) 
   {

@@ -92,7 +92,7 @@ public:
       to_copy = result_data.pop();
       dst_row = result_row.pop();
       //if its row is within bounds, write it to the image
-      if(*dst_row > 0 && *dst_row < (int)dst_img->height())
+      if(*dst_row > 0 && *dst_row < (int)dst_img->height)
       {
 	for(i=0;i<(int)this->width;i++)
 	{
@@ -157,20 +157,20 @@ void convolution_single(ARVP_Image* src_img,int src_channel,
 			gsl_matrix*filter, int filter_y, int filter_x)
 {
   //error check that the images are aligned
-  if(src_img->height() != dst_img->height() || src_img->width() != dst_img->width())
+  if(src_img->height != dst_img->height || src_img->width != dst_img->width)
     return;
   //i,j for image traverse, u,v for filter traverse
   size_t i,j,k,u,v;
   //newPx is to buffer the convolution result
   double new_px[3];
   //create a buffer to store convolution results that cannot yet be written
-  ConvResult result_buff(src_img->width());
+  ConvResult result_buff(src_img->width);
   //j scans down the rows, i scans across the columns
   //printf("Starting convolution\n");
-  for(j=0;j<src_img->height();j++)
+  for(j=0;j<src_img->height;j++)
   {
     //printf("  Row %i\n",(int)j);
-    for(i=0;i<src_img->width();i++)
+    for(i=0;i<src_img->width;i++)
     {
       for(k=0;k<3;k++)
 	if((int)k!=dst_channel)
@@ -207,20 +207,20 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 		 gsl_matrix*filter, int filter_y, int filter_x)
 {
   //error check that the images are aligned
-  if(src_img->height() != dst_img->height() || src_img->width() != dst_img->width())
+  if(src_img->height != dst_img->height || src_img->width != dst_img->width)
     return;
   //i,j for image traverse, k for channels, u,v for filter traverse
   size_t i,j,k,u,v;
   //newPx is to buffer the convolution result
   double new_px[3];
   //create a buffer to store convolution results that cannot yet be written
-  ConvResult result_buff(src_img->width());
+  ConvResult result_buff(src_img->width);
   //j scans down the rows, i scans across the columns
   //printf("Starting convolution\n");
-  for(j=0;j<src_img->height();j++)
+  for(j=0;j<src_img->height;j++)
   {
     //printf("  Row %i\n",(int)j);
-    for(i=0;i<src_img->width();i++)
+    for(i=0;i<src_img->width;i++)
     {
       //printf("Pixel (%i,%i) \n",(int)j,(int)i);
       for(k=0;k<3;k++)
@@ -299,8 +299,8 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   //j scans down the rows, i scans down the columns
   /*
   printf("THRESHOLDING\n");
-  for(j=0;j<src_img->height();j++)
-    for(i=0;i<src_img->width();i++)
+  for(j=0;j<src_img->height;j++)
+    for(i=0;i<src_img->width;i++)
     {
       for(k=0;k<3;k++)
       {
@@ -323,8 +323,8 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   gsl_matrix_free(gauss);
   printf("FLATTENING\n");  
   //flatten back to grayscale into the red channel
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
       ch_buff = 0;
       ch_buff += img_buff->get_ch(0,j,i)/3;
@@ -351,8 +351,8 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   //store G in Green, reduced theta in Blue
   pixel_RGB px;
   double Gx,Gy,G,theta;
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
       px = img_buff->get(j,i);
       Gx = (signed char)px.ch[1];
@@ -374,14 +374,14 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   //img_buff->debugPrint(false,false,false);
   printf("NONMAX SUPPRESSION\n");  
   //nonmax suppression
-  bool * is_max = new bool[img_buff->height()*img_buff->width()];
+  bool * is_max = new bool[img_buff->height*img_buff->width];
   //unsigned char theta;
   unsigned char G_curr,G_pos,G_neg;
   //figure out which pixels are non-max
   printf("MAX FINDING LOOP\n");
   //img_buff->debugPrint(false,true,false);
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
       //printf("img[%i,%i]\n",(int)j,(int)i);  
       theta = img_buff->get_ch(2,j,i);
@@ -415,26 +415,26 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
       //G_curr = 0;
       //printf("\tISMAX DETERMINE\n");
       if(G_curr > G_pos && G_curr > G_neg)
-	is_max[j*img_buff->width()+i] = true;
+	is_max[j*img_buff->width+i] = true;
       else
-	is_max[j*img_buff->width()+i] = false;
+	is_max[j*img_buff->width+i] = false;
       /*
       printf("%i/%i * %i/%i = %i/%i\n",
 	     (int)j,
-	     (int)img_buff->height(),
+	     (int)img_buff->height,
 	     (int)i,
-	     (unsigned int)img_buff->width(),
-	     int(j*img_buff->width()+i),
-	     int(img_buff->height()*img_buff->width()));
+	     (unsigned int)img_buff->width,
+	     int(j*img_buff->width+i),
+	     int(img_buff->height*img_buff->width));
       */
       //printf("\tend\n");
     }//end for
   printf("ACTUAL SUPRESSION\n");  
   //suppress all the non-max
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
-      if(!is_max[j*img_buff->width()+i])
+      if(!is_max[j*img_buff->width+i])
       {
 	img_buff->set_ch(0,j,i,0);
 	img_buff->set_ch(1,j,i,0);
@@ -446,8 +446,8 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   printf("DOUBLE THRESHOLD\n");   
   //double threshold, results in blue
   //0 is supress, 1 is weak, 2 is strong
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
       //if strong
       if(abs((signed char)img_buff->get_ch(1,j,i))>=dbl_thres[1])
@@ -467,22 +467,22 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   
   //edge tracking by hysteresis
   //all weak values evaluated for strong neighbors
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
     {
       if(img_buff->get_ch(2,j,i)==2)
-	is_max[j*img_buff->width()+i] = true;
+	is_max[j*img_buff->width+i] = true;
       else if(img_buff->get_ch(2,j,i)==1)
       {
-	is_max[j*img_buff->width()+i] = false;
+	is_max[j*img_buff->width+i] = false;
 	for(v=0;v<3;v++)
 	  for(u=0;u<3;u++)
 	    if(getBoundChannel(img_buff,2,j+v,i+u)==2)
-	      is_max[j*img_buff->width()+i] = true;
+	      is_max[j*img_buff->width+i] = true;
       }
       else
       {
-	is_max[j*img_buff->width()+i] = false;
+	is_max[j*img_buff->width+i] = false;
       }
     }
   //finish the canny edge detection
@@ -492,9 +492,9 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   pixel_RGB not_edge;
   for(i=0;i<3;i++)
     not_edge.ch[i]=0;
-  for(j=0;j<img_buff->height();j++)
-    for(i=0;i<img_buff->width();i++)
-      if(is_max[j*img_buff->width()+i])
+  for(j=0;j<img_buff->height;j++)
+    for(i=0;i<img_buff->width;i++)
+      if(is_max[j*img_buff->width+i])
 	img_buff->set(j,i,edge);
       else
 	img_buff->set(j,i,not_edge);
