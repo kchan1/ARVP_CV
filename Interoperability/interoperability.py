@@ -8,6 +8,8 @@ import Queue
 import socket
 import pycurl
 import json
+import urllib2
+import datetime
 from StringIO import StringIO
 
 # Setup
@@ -135,7 +137,6 @@ class GuiPart:
         self.rti.image=rtimg
         self.rti.grid(row=5, column=2, columnspan=1, padx=5, pady=5)
         '''
-
         # User credentials field
         cred_label_text = ['Server IP:    ','Username: ','Password:  ']
         self.cred_text = []
@@ -157,6 +158,7 @@ class GuiPart:
         Handle all the messages currently in the queue (if any).
         """
         #self.counter = 0
+        #self.queue.put('asdas')
         while self.queue.qsize():
             try:
                 self.msg = str(self.queue.get(0)) + '\n'
@@ -166,6 +168,7 @@ class GuiPart:
                 if(float(self.tele.index('end')) > 11.0):
                     self.tele.delete('1.0','end')
                 self.msg2 = self.queue2.get(0) + '\n'
+                #print self.msg2
                 if(self.msg2.find('Target') == 0):
                     #self.targetpics[self.counter] = self.msg2
                     self.targetpics.append(self.msg2)
@@ -263,6 +266,7 @@ class ThreadedClient:
         # Create the queue
         self.queue = Queue.Queue()
         self.queue2 = Queue.Queue()
+        self.queue3 = Queue.Queue()
 
         # Set up the GUI part
         self.gui = GuiPart(master, self.queue, self.queue2, self.endApplication)
@@ -270,13 +274,27 @@ class ThreadedClient:
         # Set up the thread to do asynchronous I/O
         # More can be made if necessary
         self.running = 1
+        self.locTime = {}
+
+        #Recieving and sending telemetry data
         self.thread1 = threading.Thread(target=self.workerThread1)
         self.thread1.daemon = True
         self.thread1.start()
 
+        #Receiving target data
         self.thread2 = threading.Thread(target=self.workerThread2)
         self.thread2.daemon = True
         self.thread2.start()
+
+        #Collecting location data
+        self.thread3 = threading.Thread(target=self.workerThread3)
+        self.thread3.daemon = True
+        self.thread3.start()
+
+        #Processing location info for targets
+        self.thread4 = threading.Thread(target=self.workerThread4)
+        self.thread4.daemon = True
+        self.thread4.start()
         
         # Start the periodic call in the GUI to check if the queue contains
         # anything
@@ -304,59 +322,54 @@ class ThreadedClient:
         control.
         """
         while self.running:
-            # To simulate asynchronous I/O, we create a random number at
-            # random intervals. Replace the following 2 lines with the real
-            # thing.
 
-            #try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                server_address = ('localhost', 10008)
-                sock.bind(server_address)
-                sock.listen(1)
-                #print interop_api_url
-                while self.running:
-                    #print interop_api_url
-                    self.queue.put('Waiting for connection')
-                    connection, client_address = sock.accept()
-                    self.queue.put('Connected to Mission Planner!')
-                    while self.running:
-                        # Initial server_info GET request
-                        c = pycurl.Curl()
-                        buffer = StringIO()
-                        c.setopt(pycurl.URL, interop_api_url+'server_info')
-                        c.setopt(pycurl.WRITEDATA, buffer)
-                        c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
-                        c.perform()
-                        self.queue.put('Server Time:\n' + buffer.getvalue())
-                        
-                        data = connection.recv(200)
-                        #print str(len(data)) + '\n'
-                        if(len(data) > 75):
-                            data = data[:data.find('latitude',25)]
-                            self.queue.put('*****Telemetry Overflow*****')
-                        
-                        # Send telemetry to server
-                        
-                        c = pycurl.Curl()
-                        c.setopt(pycurl.URL, interop_api_url+'telemetry')
-                        c.setopt(pycurl.POSTFIELDS, data)
-                        c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
-                        c.perform()
-                        
-                        self.queue.put(data)
-                        #print data
-                        sock.close()
-            #except:
-               # self.queue.put("Connection failure")
+            mpurl = 'http://127.0.0.1:56781/mavlink/'
+
+            while self.running:
+
+                self.queue.put('Waiting for connection')
+                '''#print datetime.datetime.now().time()
+                telemdata = json.load(urllib2.urlopen(mpurl))
+                
+                #print telemdata['lat'] + " " + telemdata['lon']
+                telemdatastr = "latitude="+str(telemdata['GPS_RAW_INT']['msg']['lat']/float(10000000))+ \
+                      "&longitude="+str(telemdata['GPS_RAW_INT']['msg']['lon']/float(10000000)) + \
+                      "&altitude_msl="+str(telemdata['VFR_HUD']['msg']['alt'])+ \
+                      "&uas_heading="+str(telemdata['VFR_HUD']['msg']['heading'])
+                self.queue.put(telemdatastr)'''
+                '''try:
+                    c = pycurl.Curl()
+                    buffer = StringIO()
+                    c.setopt(pycurl.URL, interop_api_url+'server_info')
+                    c.setopt(pycurl.WRITEDATA, buffer)
+                    c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
+                    c.setopt(pycurl.CONNECTTIMEOUT, 10)
+                    c.perform()
+                    self.queue.put('Server Time:\n' + buffer.getvalue())
+                except:
+                    self.queue.put("S_Time: Connection failure")
+                try:
+                    c = pycurl.Curl()
+                    c.setopt(pycurl.URL, interop_api_url+'telemetry')
+                    c.setopt(pycurl.POSTFIELDS, telemdatastr)
+                    c.setopt(pycurl.COOKIEFILE, 'sessionid.txt')
+                    c.setopt(pycurl.CONNECTTIMEOUT, 10)
+                    c.perform()
+                    #self.queue.put(telemdatastr)
+                except:
+                    self.queue.put("S_Telem: Connection failure")'''
+                time.sleep(0.1)
 
     def workerThread2(self):
+        
         s = socket.socket()         # Create a socket object
-        host = socket.gethostname() # Get local machine name
+        host = 'localhost' # Get local machine name
         port = 12352                # Reserve a port for your service.
         s.bind((host, port))        # Bind to the port
 
         s.listen(5)                 # Now wait for client connection.
         counter = 0
+
         #c, addr = s.accept()
         for x in range(1,3):        # Establish connection with client.
             c, addr = s.accept()
@@ -381,20 +394,70 @@ class ThreadedClient:
             print "Data Received successfully"
             #print (c.recv(1024))
             c.close()                # Close the connection
+            #Add received info to queue3
+            
         s.close()
+        
+    def workerThread3(self):
+
+        locInterval = 5     #Seconds
+        mpurl = 'http://127.0.0.1:56781/mavlink/'
+
+        #Syncing time stuff goes here
+        targetTime = datetime.time(15,33,40,405000)
+        while datetime.datetime.now().time() < targetTime and self.running:
+            print "Waiting for start"
+            
+        while self.running:
+            if datetime.datetime.now().time().second % locInterval == 0:
+                print "test"
+                #telemdata = json.load(urllib2.urlopen(mpurl))
+                latdata = "100" #str(telemdata['GPS_RAW_INT']['msg']['lat']/float(10000000))
+                longdata = "50" #str(telemdata['GPS_RAW_INT']['msg']['lon']/float(10000000))
+                altdata = "200" #str(telemdata['VFR_HUD']['msg']['alt'])
+                uasdata = "20" #str(telemdata['VFR_HUD']['msg']['heading'])
+                currTime = datetime.datetime.now().time()
+                key = str(currTime.hour) + ':' + str(currTime.minute) + ':' + str(int(currTime.second / 5) * 5)
+                self.locTime[key] = str(latdata) + ',' + str(longdata) + ',' + str(altdata) + ',' + str(uasdata)
+                #print key
+                self.queue3.put(key + ',asdsad')    #Tests
+                time.sleep(1)   #Ensure there is no overlap
+
+    def workerThread4(self):
+
+        locInfo = ''
+
+        while self.running:
+            try:
+                #Stack order: Timestamp -> X and Y Coords of Target in Pic -> Pic Name
+                #print 'test2'
+                newTargets = self.queue3.get(0)
+                newTargetsParsed = newTargets.split(',')
+
+                sorted(self.locTime)
+
+                for key in self.locTime:
+                    if key == newTargetsParsed[0]:
+                        locInfo = self.locTime[key]
+                        #del self.locTime[key]
+                        break
+                    #else:
+                    #    del self.locTime[key]
+
+                self.locationProcessing(newTargetsParsed, locInfo)
+                time.sleep(10)
+
+            except Queue.Empty:
+                pass
     
+    def locationProcessing(self, targetData, locData):
+        print targetData
+        print locData
+        #Add location processing code
+
     def endApplication(self):
         self.running = 0
 
-# Send POST login session cookie
-
-'''c = pycurl.Curl()
-c.setopt(pycurl.URL, interop_api_url+'login')
-c.setopt(pycurl.POSTFIELDS, 'username=testadmin&password=testpass')
-c.setopt(pycurl.COOKIEJAR, 'sessionid.txt')
-c.perform()'''
-
-#rand = random.Random()
 root = Tkinter.Tk()
 
 client = ThreadedClient(root)
