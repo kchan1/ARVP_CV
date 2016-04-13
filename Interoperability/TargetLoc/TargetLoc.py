@@ -33,7 +33,7 @@ def getRotMatrix(rotx,roty,rotz):
 
 #this function is a convenience function for packing the image coordinates and focus into a column matrix
 def imgToCam(focus,coord_img,scale=1):
-    return np.matrix([[coord_pic[0]],[coord_pic[1]],focus]])
+    return np.matrix([[coord_pic[0]],[coord_pic[1]],[focus]])
 
 #this function transforms coordinates on the camera plane into vehicular coordinates
 #get calib_matrix from the getCalibMatrix function
