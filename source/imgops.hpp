@@ -7,10 +7,10 @@
 #include <gsl/gsl_blas.h>
 #include <iostream>
 const int bin_thres[] = {100,200,150};
-const int dbl_thres[] = {3,20};
-const double PI = 3.14159265359;
-const double PI_2 = 1.57079632679;
-const double PI_4 = 0.78539816339;
+//const int dbl_thres[] = {3,20};
+//const double PI = 3.14159265359;
+//const double PI_2 = 1.57079632679;
+//const double PI_4 = 0.78539816339;
 class ConvResult
 {
 private:
@@ -106,6 +106,39 @@ public:
     }
   }
 };
+
+void flatten_gray(ARVP_Image * src_img,double*weights)
+{
+  unsigned int i,j,k;
+  double sum;
+  for(j=0;j<src_img->height;j++)
+    for(i=0;i<src_img->width;i++)
+    {
+      sum=0;
+      for(k=0;k<src_img->channels;k++)
+      {
+	sum+=weights[k]*src_img->get_ch(k,j,i);
+      }
+      src_img->set_ch(k,j,i,(unsigned char)sum);
+    }
+}
+
+void flatten_bin(ARVP_Image * src_img,double*bin_thres)
+{
+  unsigned int i,j,k;
+  for(j=0;j<src_img->height;j++)
+    for(i=0;i<src_img->width;i++)
+    {
+      for(k=0;k<src_img->channels;k++)
+      {
+	//thresholding
+	if(src_img->get_ch(k,j,i)>=bin_thres[k])
+	  src_img->set_ch(k,j,i,255);
+	else
+	  src_img->set_ch(k,j,i,0);
+      }
+    }
+}
 
 void gaussian(gsl_matrix*filter,float stdev)
 {
@@ -257,25 +290,25 @@ double simplifyTheta(double theta)
   double simple = 0;
   //center 0
   //if(abs(theta)<=M_PI_4/2.0)
-  if(fabs(theta)<=PI_4/2.0)
+  if(fabs(theta)<=M_PI_4/2.0)
   {
     //printf("\tTHETA %f <= %f\n",fabs(theta),PI_4/2);
     simple = 0;
   }
   //center PI/4
-  else if(fabs(theta)<=PI_4+PI_4/2.0)
+  else if(fabs(theta)<=M_PI_4+M_PI_4/2.0)
   {
     //printf("\tTHETA %f <= %f\n",fabs(theta),PI_4+PI_4/2);
     simple = 1;
   }
   //center PI/2
-  else if(fabs(theta)<=PI_2+PI_4/2.0)
+  else if(fabs(theta)<=M_PI_2+M_PI_4/2.0)
   {
     //printf("\tTHETA %f <= %f\n",fabs(theta),PI_2+PI_4/2.0);
     simple = 2;
   }
   //center 3*PI/4
-  else if(fabs(theta)<=3*PI_4+PI_4/2.0)
+  else if(fabs(theta)<=3*M_PI_4+M_PI_4/2.0)
   {
     //printf("\tTHETA %f <= %f\n",fabs(theta),3*PI_4+PI_4/2.0);
     simple = 3;
@@ -289,7 +322,10 @@ double simplifyTheta(double theta)
   return simple;
 }
 
-void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
+void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
+			double stddev=1,
+			double thres_strong=3,
+			double thres_weak=20)
 {
   size_t i,j,u,v;
   ARVP_Image* img_buff = dst_img;
@@ -316,7 +352,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
   //printf("BLURRING\n");  
   //use a 5x5 to blur, stdev = 1 
   gsl_matrix*gauss = gsl_matrix_alloc(5,5);
-  gaussian(gauss,1.4);
+  gaussian(gauss,stddev);
   //blur the image
   convolution_RGB(img_buff,img_buff,gauss,5/2,5/2);
   //deallocate the gaussian filter because it never gets used again
@@ -450,10 +486,10 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img)
     for(i=0;i<img_buff->width;i++)
     {
       //if strong
-      if(abs((signed char)img_buff->get_ch(1,j,i))>=dbl_thres[1])
+      if(abs((signed char)img_buff->get_ch(1,j,i))>=thres_strong)
 	img_buff->set_ch(2,j,i,2);
       //if weak
-      else if(abs((signed char)img_buff->get_ch(1,j,i))>=dbl_thres[0])
+      else if(abs((signed char)img_buff->get_ch(1,j,i))>=thres_weak)
 	img_buff->set_ch(2,j,i,1);
       //weaker than weak
       else

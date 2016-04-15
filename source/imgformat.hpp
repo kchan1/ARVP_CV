@@ -76,6 +76,14 @@ public:
   }
 };
 
+class ARVP_Image_Resize : public ARVP_Image
+{
+private:
+  ARVP_Image*original;
+public:
+  
+};
+
 bool isInImage(ARVP_Image* img,int coordY,int coordX)
 {
   if(coordX<int(img->width) && coordX>=0 && 
