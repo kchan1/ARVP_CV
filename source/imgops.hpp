@@ -18,6 +18,7 @@ private:
   LinkedList<int> result_row;
   size_t width;
 public:
+
   ConvResult(size_t width)
   {
     this->width = width;
@@ -46,6 +47,7 @@ public:
       *result_row.get(0) = -1;
     }
   }
+
   //buffers a single result, may create a new buffer
   void bufferResult(pixel_RGB result,int row,int column)
   {
@@ -78,6 +80,7 @@ public:
       result_data.get(0)[column] = result;
     }
   }
+
   //last thing to be called during a convolution!!!!
   //deallocates the kilobyte buffers 
   void flush(ARVP_Image*dst_img)
@@ -107,6 +110,7 @@ public:
   }
 };
 
+//transform an image into grayscale using a set of weights
 void flatten_gray(ARVP_Image * src_img,double*weights)
 {
   unsigned int i,j,k;
@@ -123,6 +127,7 @@ void flatten_gray(ARVP_Image * src_img,double*weights)
     }
 }
 
+//transforms an image into three binary channels
 void flatten_bin(ARVP_Image * src_img,double*bin_thres)
 {
   unsigned int i,j,k;
@@ -140,6 +145,7 @@ void flatten_bin(ARVP_Image * src_img,double*bin_thres)
     }
 }
 
+//set the filter to a normalized gaussian matrix
 void gaussian(gsl_matrix*filter,float stdev)
 {
   unsigned int i,j;
@@ -162,6 +168,7 @@ void gaussian(gsl_matrix*filter,float stdev)
   gsl_matrix_scale(filter,1.0/sum);
 }
 
+//set the filter to a dx operator
 void sobel_x(gsl_matrix*filter)
 {
   if(filter->size1!=3 || filter->size2!=3)
@@ -176,6 +183,8 @@ void sobel_x(gsl_matrix*filter)
   //scale so we don't overflow
   gsl_matrix_scale(filter,0.25);
 }
+
+//set the filter to a dy operator
 void sobel_y(gsl_matrix*filter)
 {
   if(filter->size1!=3 || filter->size2!=3)
@@ -239,6 +248,9 @@ void convolution_single(ARVP_Image* src_img,int src_channel,
 void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img, 
 		 gsl_matrix*filter, int filter_y, int filter_x)
 {
+  //printf("CONVOLUTION_RGB CALLED WITH SRC (%i,%i) DST (%i,%i)\n",
+  //	 (int)src_img->height,(int)src_img->width,
+  //	 (int)dst_img->height,(int)dst_img->width);
   //error check that the images are aligned
   if(src_img->height != dst_img->height || src_img->width != dst_img->width)
     return;
@@ -270,7 +282,7 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 					 i-filter_x+u)
 	      *gsl_matrix_get(filter,v,u);
 	}
-      //printf("Pixel (%i,%i) = (%f,%f,%f)\n",(int)j,(int)i,new_px[0],new_px[1],new_px[2]);
+      // printf("Pixel (%i,%i) = (%f,%f,%f)\n",(int)j,(int)i,new_px[0],new_px[1],new_px[2]);
       //buffer the final result
       pixel_RGB temp;
       for(k=0;k<3;k++)
@@ -285,6 +297,7 @@ void convolution_RGB(ARVP_Image* src_img, ARVP_Image* dst_img,
 }
 
 //helper for canny edge detector
+//resolves full rotation to one of four basic directions
 double simplifyTheta(double theta)
 {
   double simple = 0;
@@ -331,24 +344,6 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
   ARVP_Image* img_buff = dst_img;
   //pixel_RGB px_buff;
   double ch_buff;
-  //do a threshold
-  //j scans down the rows, i scans down the columns
-  /*
-  printf("THRESHOLDING\n");
-  for(j=0;j<src_img->height;j++)
-    for(i=0;i<src_img->width;i++)
-    {
-      for(k=0;k<3;k++)
-      {
-	//thresholding
-	if(src_img->get_ch(k,j,i)>=bin_thres[k])
-	  px_buff.ch[k]=255;
-	else
-	  px_buff.ch[k]=0;
-      }
-      img_buff->set(j,i,px_buff);
-    }
-  */
   //printf("BLURRING\n");  
   //use a 5x5 to blur, stdev = 1 
   gsl_matrix*gauss = gsl_matrix_alloc(5,5);
