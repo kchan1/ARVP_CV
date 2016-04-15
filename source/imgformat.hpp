@@ -1,4 +1,5 @@
 #include <gsl/gsl_blas.h>
+#include <math.h>
 #ifndef _IMGFORMAT_HPP_
 #define _IMGFORMAT_HPP_
 //this lets us slice up 
@@ -12,6 +13,7 @@ public:
   size_t width,height,channels;
   unsigned char * data;
   pixel_RGB * px_view;
+
   ARVP_Image(unsigned int height,unsigned int width,unsigned char* data)
   {
     this->channels = 3;
@@ -26,6 +28,7 @@ public:
       this->data[i] = (unsigned long*)calloc(width,sizeof(unsigned long)*width);
     */
   }
+
   ARVP_Image(unsigned int height, unsigned int width)
   {
     this->channels = 3;
@@ -34,7 +37,8 @@ public:
     this->data = new unsigned char[width*height*this->channels];
     this->px_view = (pixel_RGB*)(void*)this->data;
   }
-  ~ARVP_Image()
+
+  virtual ~ARVP_Image()
   {
     delete[] this->data;
     /*
@@ -44,6 +48,7 @@ public:
     free(this->data);
     */
   }
+
   void debugPrint(bool sign0=false,bool sign1=false,bool sign2=false)
   {
     pixel_RGB px;
@@ -58,20 +63,25 @@ public:
 	     sign2?(signed char)px.ch[2]:(unsigned char)px.ch[2]);
     }
   }
-  void set(unsigned int row, unsigned int col,pixel_RGB val)
+
+  virtual void set(unsigned int row, unsigned int col,pixel_RGB val)
   { 
     this->px_view[row*this->width+col] = val;
   }
-  void set_ch(unsigned int ch,unsigned int row, unsigned int col,unsigned char val)
+
+  virtual void set_ch(unsigned int ch,unsigned int row, unsigned int col,unsigned char val)
   { 
     this->data[(row*this->width+col)*this->channels+ch] = val;
   }
-  pixel_RGB get(unsigned int row, unsigned int col)
+
+  virtual pixel_RGB get(unsigned int row, unsigned int col)
   {
     return this->px_view[row*this->width+col];
   }
-  unsigned char get_ch(unsigned int ch, unsigned int row, unsigned int col)
-  { 
+
+  virtual unsigned char get_ch(unsigned int ch, unsigned int row, unsigned int col)
+  {
+    //printf("CALLING GET_CH ON ORIGINAL (%i,%i,%i)\n",(int)ch,(int)row,(int)col);
     return this->data[(row*this->width+col)*this->channels+ch];
   }
 };
@@ -81,9 +91,67 @@ class ARVP_Image_Resize : public ARVP_Image
 private:
   ARVP_Image*original;
 public:
+  //size_t width,height,channels;
   
+  ARVP_Image_Resize(unsigned int height,unsigned int width,ARVP_Image* original) :
+    ARVP_Image(height,width,NULL)
+  {
+    //this->channels = 3;
+    //this->width = width;
+    //this->height = height;
+    this->original=original;
+  }
+
+  int scale_x(int org_x)
+  {
+    //printf("Scaling X %i down to %i",org_x,(int)round(((float)org_x)/original->width * this->width));
+    return round(((float)org_x)/original->width * this->width);
+  }
+  int unscale_x(int new_x)
+  {
+    //printf("Unscaling X %i back to %i",new_x,(int)round(((float)new_x)/this->width * original->width));
+    return round(((float)new_x)/this->width * original->width);
+  }
+  
+  int scale_y(int org_y)
+  {
+    //printf("Scaling Y %i down to %i",org_y,(int)round(((float)org_y)/original->height * this->height));
+    return round(((float)org_y)/original->height * this->height);
+  }
+  int unscale_y(int new_y)
+  {
+    //printf("Unscaling Y %i back to %i",new_y,(int)round(((float)new_y)/this->height * original->height));
+    return round(((float)new_y)/this->height * original->height);
+  }
+
+  //overwritten member functions
+  void set(unsigned int row, unsigned int col,pixel_RGB val)
+  { 
+    //this->px_view[row*this->width+col] = val;
+    this->original->set(unscale_y(row),unscale_x(col),val);
+  }
+
+  void set_ch(unsigned int ch,unsigned int row, unsigned int col,unsigned char val)
+  {
+    //this->data[(row*this->width+col)*this->channels+ch] = val;
+    this->original->set_ch(ch,unscale_y(row),unscale_x(col),val);
+  }
+
+  pixel_RGB get(unsigned int row, unsigned int col)
+  {
+    //return this->px_view[row*this->width+col];
+    return this->original->get(unscale_y(row),unscale_x(col));
+  }
+
+  unsigned char get_ch(unsigned int ch, unsigned int row, unsigned int col)
+  { 
+    //printf("CALLING GET_CH ON ORIGINAL (%i,%i,%i)\n",(int)ch,(int)unscale_y(row),(int)unscale_x(col));
+    //return this->data[(row*this->width+col)*this->channels+ch];
+    return this->original->get_ch(ch,unscale_y(row),unscale_x(col));
+  }
 };
 
+//verify a set of coordinates is inside an image
 bool isInImage(ARVP_Image* img,int coordY,int coordX)
 {
   if(coordX<int(img->width) && coordX>=0 && 
@@ -92,9 +160,11 @@ bool isInImage(ARVP_Image* img,int coordY,int coordX)
   else
     return false;
 }
+
 //gets a pixel bounded by the image border
 pixel_RGB getBoundPixel(ARVP_Image* img,int coordY,int coordX)
 {
+  //printf("GETTING BOUND PIXEL (%i,%i)\n",coordY,coordX);
   if(!isInImage(img,coordY,coordX))
   {
     if(coordX<0)
@@ -109,6 +179,8 @@ pixel_RGB getBoundPixel(ARVP_Image* img,int coordY,int coordX)
   }
   return img->get((unsigned int)(coordY),(unsigned int)(coordX));
 }
+
+//get a pixel but don't go out of bounds
 unsigned char getBoundChannel(ARVP_Image* img,unsigned int ch,int targY,int targX)
 {
   int coordY=targY;
@@ -125,7 +197,7 @@ unsigned char getBoundChannel(ARVP_Image* img,unsigned int ch,int targY,int targ
     else if(coordY>=int(img->height))
       coordY=img->height-1;
   }
-  
+  //printf("GETTING BOUND CHANNEL (%i,%i,%i)\n",(int)ch,coordY,coordX);
   return img->get_ch(ch,(coordY),(coordX));
 }
 #endif

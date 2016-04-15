@@ -10,8 +10,13 @@ int main(int argc,char*argv[])
   const char* filename = "img.jpg";
   const char* outname = "write.jpg";
   std::cout<<"--Testing has begun on opening an image--\n";
-  ARVP_Image*test_img = openJPEG(filename);
+  ARVP_Image*test_img_raw = openJPEG(filename);
+  ARVP_Image_Resize*test_img_scaled = new ARVP_Image_Resize(test_img_raw->height/4,
+						     test_img_raw->width/4,
+						     test_img_raw);
+  ARVP_Image*test_img = (ARVP_Image*)test_img_scaled;
   printf("Opening image %s\n",filename);
+  printf("Original Image of size w,h: %i,%i\n",(int)test_img_raw->width,(int)test_img_raw->height);
   printf("Image of size w,h: %i,%i\n",(int)test_img->width,(int)test_img->height);
   
   if(argc>=2 && strcmp(argv[1],"canny")==0)
@@ -33,6 +38,7 @@ int main(int argc,char*argv[])
     gaussian(blur,stdev);
     convolution_RGB(test_img,test_img,blur,f_size/2,f_size/2);
     gsl_matrix_free(blur);
+    printf("Done with the blur\n");
   }
   else if(argc>=2 && strcmp(argv[1],"sobel")==0)
   {
@@ -84,11 +90,13 @@ int main(int argc,char*argv[])
   else
   {
     printf("Usage: jpegtestmain [canny|gauss|sobel [sngl|RGB]]\n");
-    delete test_img;
+    delete test_img_scaled;
+    delete test_img_raw;
     return 0;
   }
   printf("Saving image as %s\n",outname);
-  saveARVP_Image(test_img,outname);
-  delete test_img;
+  saveARVP_Image(test_img_raw,outname);
+  delete test_img_scaled;
+  delete test_img_raw;
   return 0;
 }
