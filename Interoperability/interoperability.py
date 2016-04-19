@@ -362,7 +362,7 @@ class ThreadedClient:
 
     def workerThread2(self):
         
-        s = socket.socket()         # Create a socket object
+        '''s = socket.socket()         # Create a socket object
         host = 'localhost' # Get local machine name
         port = 12352                # Reserve a port for your service.
         s.bind((host, port))        # Bind to the port
@@ -396,7 +396,41 @@ class ThreadedClient:
             c.close()                # Close the connection
             #Add received info to queue3
             
-        s.close()
+        s.close()'''
+        path = 'C:\Users\JWong\Documents\Photos'
+        tempnew = []
+        newfiles = []
+        oldfiles = []
+
+        while True:
+            
+            for root, dirs, filenames in os.walk(path):
+
+                for f in filenames:
+                    tempnew.append(os.path.relpath(os.path.join(root, f), path))
+                    
+                newfiles = tempnew
+                tempnew = []
+
+                if not oldfiles:
+                    oldfiles = newfiles
+
+                if cmp(newfiles, oldfiles) != 0:
+                    print 'Found new file!'
+                    time.sleep(10)
+                    nf = set(newfiles)
+                    of = set(oldfiles)
+                    delta = nf.difference(of)
+                    for x in delta:
+                        print x[:len(x) - 4]
+                        #self.queue3.put(x)
+
+                oldfiles = newfiles
+
+            time.sleep(5)
+            print 'Nothing new!'
+            #print cmp(newfiles, oldfiles)
+            #print newfiles
         
     def workerThread3(self):
 
@@ -429,22 +463,22 @@ class ThreadedClient:
 
         while self.running:
             try:
-                #Stack order: Timestamp -> X and Y Coords of Target in Pic -> Pic Name
+                #Stack order: Timestamp -> X and Y Coords of Target in Pic
                 #print 'test2'
                 newTargets = self.queue3.get(0)
-                newTargetsParsed = newTargets.split(',')
+                newTargetsParsed = newTargets[:len(newTargets) - 4].split(',')
 
                 sorted(self.locTime)
 
                 for key in self.locTime:
                     if key == newTargetsParsed[0]:
-                        locInfo = self.locTime[key]
+                        locInfo = self.locTime[key].split(',')
                         #del self.locTime[key]
                         break
                     #else:
                     #    del self.locTime[key]
 
-                self.locationProcessing(newTargetsParsed, locInfo)
+                self.locationProcessing(newTargetsParsed, locInfo)  #Send in lists
                 time.sleep(10)
 
             except Queue.Empty:
