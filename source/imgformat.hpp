@@ -2,8 +2,9 @@
 #include <math.h>
 #ifndef _IMGFORMAT_HPP_
 #define _IMGFORMAT_HPP_
-//this lets us slice up 
+//this lets us slice up strided R G B into pixels
 typedef struct pixel_RGB{unsigned char ch[3];} pixel_RGB;
+//more of an example of how to declare a pixel_RGB
 const pixel_RGB COLOR_WHITE = {.ch = {0xFF,0xFF,0xFF}};
 
 class ARVP_Image

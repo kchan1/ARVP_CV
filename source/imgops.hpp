@@ -111,7 +111,7 @@ public:
 };
 
 //transform an image into grayscale using a set of weights
-void flatten_gray(ARVP_Image * src_img,double*weights)
+void flatten_gray_ch(ARVP_Image * src_img,ARVP_Image * dst_img,int dst_ch,double*weights)
 {
   unsigned int i,j,k;
   double sum;
@@ -123,7 +123,7 @@ void flatten_gray(ARVP_Image * src_img,double*weights)
       {
 	sum+=weights[k]*src_img->get_ch(k,j,i);
       }
-      src_img->set_ch(k,j,i,(unsigned char)sum);
+      src_img->set_ch(dst_ch,j,i,(unsigned char)sum);
     }
 }
 
@@ -192,6 +192,20 @@ void sobel_y(gsl_matrix*filter)
   sobel_x(filter);
   gsl_matrix_transpose(filter);
 }
+
+void laplace(gsl_matrix*filter)
+{
+  if(filter->size1!=3 || filter->size2!=3)
+    return;
+  int i,j;
+  double laplace_arr[] = {1, 1,1,
+			  1,-8,1,
+			  1, 1,1};
+  for(j=0;j<3;j++)
+    for(i=0;i<3;i++)
+      gsl_matrix_set(filter,j,i,laplace_arr[j*3+i]);
+}
+
 
 //convolution on a single channel
 void convolution_single(ARVP_Image* src_img,int src_channel,
@@ -395,10 +409,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
       else
 	theta = atan2(Gy,Gx);
       //reduce theta, 0->0d, 1->45d, 2->90d, 3->135d
-      //if(theta!=0)
-      //  printf("arctan(%f/%f) = %f deg\n",Gy,Gx,theta*180/M_PI);
       theta = simplifyTheta(theta);
-      //printf("\t=> %f\n",theta);
       img_buff->set_ch(1,j,i,(unsigned char)(G*255/180));
       img_buff->set_ch(2,j,i,(unsigned char)theta);
     }
@@ -534,5 +545,35 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
   //printf("RETURN\n");    
 }
 
-
+//calculates a simple gradient on an image
+void gradient_RGB(ARVP_Image*src_img,ARVP_Image*dst_img)
+{
+  printf("gradient_RGB\n");
+  int k,j,i;
+  ARVP_Image*buff_img = new ARVP_Image(src_img->height,src_img->width);
+  gsl_matrix*deriv = gsl_matrix_alloc(3,3);
+  double*weights = new double[3];
+  weights[0] = 1/3;
+  weights[1] = 1/3;
+  weights[2] = 1/3;
+  printf("Begin Sobel\n");
+  sobel_x(deriv);
+  convolution_RGB(src_img,buff_img,deriv,1,1);
+  flatten_gray_ch(buff_img,dst_img,0,weights);
+  sobel_y(deriv);
+  convolution_RGB(src_img,buff_img,deriv,1,1);
+  flatten_gray_ch(buff_img,dst_img,1,weights);
+  printf("Calculating total from X and Y\n");
+  for(j=0;j<(int)dst_img->height;j++)
+    for(i=0;i<(int)dst_img->width;i++)
+    {
+      double grade = sqrt(pow(dst_img->get_ch(0,j,i),2)*pow(dst_img->get_ch(1,j,i),2));
+      for(k=0;k<(int)dst_img->width;k++)
+	dst_img->set_ch(k,j,i,grade);
+    }
+  printf("Done and deallocing memory\n");
+  delete buff_img;
+  gsl_matrix_free(deriv);
+  delete[] weights;
+}
 #endif
