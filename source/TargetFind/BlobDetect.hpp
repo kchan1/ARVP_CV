@@ -65,10 +65,10 @@ LinkedList<BlobCandidate>*detectScale(ARVP_Image*src_img,int init_scale,int max_
     //strong positive reponse for blobs of size sqrt(2*scale)
     //filter = gsl_matrix_calloc(blur_size,blur_size);
     //laplace(filter);
-    int smoothsize = 7;
+    int smoothsize = 9;
     filter = gsl_matrix_calloc(smoothsize,smoothsize);
-    for(j=0;j<7;j++)
-      for(i=0;i<7;i++)
+    for(j=0;j<smoothsize;j++)
+      for(i=0;i<smoothsize;i++)
 	gsl_matrix_set(filter,j,i,1.0/pow(smoothsize,2));
     convolution_RGB(scale_space_img,scale_space_img,filter,smoothsize/2,smoothsize/2); 
     /*
