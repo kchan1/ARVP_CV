@@ -15,6 +15,7 @@ int main(int argc,char*argv[])
 						     test_img_raw->width/4,
 						     test_img_raw);
   ARVP_Image*test_img = (ARVP_Image*)test_img_scaled;
+  ARVP_Image*dst_img = new ARVP_Image(test_img->height,test_img->width);
   printf("Opening image %s\n",filename);
   printf("Original Image of size w,h: %i,%i\n",(int)test_img_raw->width,(int)test_img_raw->height);
   printf("Image of size w,h: %i,%i\n",(int)test_img->width,(int)test_img->height);
@@ -22,7 +23,7 @@ int main(int argc,char*argv[])
   if(argc>=2 && strcmp(argv[1],"canny")==0)
   {
     printf("Edge detecting the crisp image\n");
-    cannyEdgeDetection(test_img,test_img);
+    cannyEdgeDetection(test_img,dst_img);
   }
   else if(argc>=2 && strcmp(argv[1],"gauss")==0)
   {
@@ -36,7 +37,7 @@ int main(int argc,char*argv[])
     
     gsl_matrix * blur = gsl_matrix_calloc(f_size,f_size);
     gaussian(blur,stdev);
-    convolution_RGB(test_img,test_img,blur,f_size/2,f_size/2);
+    convolution_RGB(test_img,dst_img,blur,f_size/2,f_size/2);
     gsl_matrix_free(blur);
     printf("Done with the blur\n");
   }
@@ -82,7 +83,7 @@ int main(int argc,char*argv[])
 	    Gx = (signed char)buffx_img->get_ch(k,j,i);
 	    Gy = (signed char)buffy_img->get_ch(k,j,i);
 	    G = sqrt(pow(Gx,2) + pow(Gy,2));
-	    test_img->set_ch(k,j,i,G);
+	    dst_img->set_ch(k,j,i,G);
 	  }
     delete buffx_img;
     delete buffy_img;
@@ -95,8 +96,9 @@ int main(int argc,char*argv[])
     return 0;
   }
   printf("Saving image as %s\n",outname);
-  saveARVP_Image(test_img_raw,outname);
+  saveARVP_Image(dst_img,outname);
   delete test_img_scaled;
   delete test_img_raw;
+  delete dst_img;
   return 0;
 }

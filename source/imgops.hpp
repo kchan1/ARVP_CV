@@ -123,7 +123,15 @@ void flatten_gray_ch(ARVP_Image * src_img,ARVP_Image * dst_img,int dst_ch,double
       {
 	sum+=weights[k]*src_img->get_ch(k,j,i);
       }
-      src_img->set_ch(dst_ch,j,i,(unsigned char)sum);
+      if(j==i)
+      {
+	pixel_RGB px = src_img->get(j,i);
+	printf("SUM %i,%i = %f+%f+%f = %i\n",j,i,
+	       weights[0]*px.ch[0],
+	       weights[1]*px.ch[1],
+	       weights[2]*px.ch[2],(int)round(sum));
+      }
+      dst_img->set_ch(dst_ch,j,i,(unsigned char)round(sum));
     }
 }
 
@@ -351,11 +359,12 @@ double simplifyTheta(double theta)
 
 void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
 			double stddev=1,
-			double thres_strong=3,
-			double thres_weak=20)
+			double thres_strong=20,
+			double thres_weak=3)
 {
+  //printf("cannyEdgeDetection()\n");
   size_t i,j,u,v;
-  ARVP_Image* img_buff = dst_img;
+  ARVP_Image* img_buff = new ARVP_Image(src_img->height,src_img->width);
   //pixel_RGB px_buff;
   double ch_buff;
   //printf("BLURRING\n");  
@@ -363,7 +372,7 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
   gsl_matrix*gauss = gsl_matrix_alloc(5,5);
   gaussian(gauss,stddev);
   //blur the image
-  convolution_RGB(img_buff,img_buff,gauss,5/2,5/2);
+  convolution_RGB(src_img,img_buff,gauss,5/2,5/2);
   //deallocate the gaussian filter because it never gets used again
   gsl_matrix_free(gauss);
   //printf("FLATTENING\n");  
@@ -537,43 +546,84 @@ void cannyEdgeDetection(ARVP_Image* src_img, ARVP_Image*dst_img,
   for(j=0;j<img_buff->height;j++)
     for(i=0;i<img_buff->width;i++)
       if(is_max[j*img_buff->width+i])
-	img_buff->set(j,i,edge);
+	dst_img->set(j,i,edge);
       else
-	img_buff->set(j,i,not_edge);
+	dst_img->set(j,i,not_edge);
   //printf("DELETING LEFTOVER BUFFER\n");  
   delete[] is_max;
   //printf("RETURN\n");    
 }
 
 //calculates a simple gradient on an image
-void gradient_RGB(ARVP_Image*src_img,ARVP_Image*dst_img)
+void gradient_RGB(ARVP_Image*src_img,ARVP_Image*dst_img,bool debug_save=false)
 {
   printf("gradient_RGB\n");
   int k,j,i;
-  ARVP_Image*buff_img = new ARVP_Image(src_img->height,src_img->width);
-  gsl_matrix*deriv = gsl_matrix_alloc(3,3);
+  ARVP_Image*buff_img_x = new ARVP_Image(src_img->height,
+					 src_img->width);
+  ARVP_Image*buff_img_y = new ARVP_Image(src_img->height,
+					 src_img->width);
+  gsl_matrix*deriv_x = gsl_matrix_calloc(3,3);
+  gsl_matrix*deriv_y = gsl_matrix_calloc(3,3);
   double*weights = new double[3];
-  weights[0] = 1/3;
-  weights[1] = 1/3;
-  weights[2] = 1/3;
+  for(k=0;k<3;k++)
+    weights[k] = 1.0/3.0;
   printf("Begin Sobel\n");
-  sobel_x(deriv);
-  convolution_RGB(src_img,buff_img,deriv,1,1);
-  flatten_gray_ch(buff_img,dst_img,0,weights);
-  sobel_y(deriv);
-  convolution_RGB(src_img,buff_img,deriv,1,1);
-  flatten_gray_ch(buff_img,dst_img,1,weights);
-  printf("Calculating total from X and Y\n");
+  //sobel operator define
+  sobel_x(deriv_x);
+  sobel_y(deriv_y);
+  convolution_RGB(src_img,buff_img_x,deriv_x,1,1);
+  if(debug_save)
+    saveARVP_Image(buff_img_x,"DEBUG_GRADE_X.jpg");
+  //flatten_gray_ch(buff_img_xy,buff_img_g,0,weights);
+  convolution_RGB(src_img,buff_img_y,deriv_y,1,1);
+  if(debug_save)
+    saveARVP_Image(buff_img_y,"DEBUG_GRADE_Y.jpg");
+  //flatten_gray_ch(buff_img_xy,buff_img_g,1,weights);
+  //printf("Calculating total from X and Y, %i,%i\n",(int)buff_img_g->height,(int)buff_img_g->width);
+  double Gx,Gy,G;
+  for(k=0;k<3;k++)
+    for(j=0;j<(int)dst_img->height;j++)
+      for(i=0;i<(int)dst_img->width;i++)
+      {
+	Gx = (signed char)buff_img_x->get_ch(k,j,i);
+	Gy = (signed char)buff_img_y->get_ch(k,j,i);
+	G = sqrt(pow(Gx,2) + pow(Gy,2));
+	dst_img->set_ch(k,j,i,G);
+      }
+  if(debug_save)
+    saveARVP_Image(dst_img,"DEBUG_RGB_GRADE.jpg");
+  double sum;
+  pixel_RGB px;
+  double max_G=0;
   for(j=0;j<(int)dst_img->height;j++)
     for(i=0;i<(int)dst_img->width;i++)
     {
-      double grade = sqrt(pow(dst_img->get_ch(0,j,i),2)*pow(dst_img->get_ch(1,j,i),2));
-      for(k=0;k<(int)dst_img->width;k++)
-	dst_img->set_ch(k,j,i,grade);
+      sum=0;
+      for(k=0;k<3;k++)
+	sum+=dst_img->get_ch(k,j,i);
+      sum/=3;
+      max_G=sum>max_G?sum:max_G;
+      for(k=0;k<3;k++)
+	px.ch[k]=sum;
+      dst_img->set(j,i,px);
     }
+  for(k=0;k<(int)dst_img->channels;k++)
+    for(j=0;j<(int)dst_img->height;j++)
+      for(i=0;i<(int)dst_img->width;i++)
+      {
+        double newch = dst_img->get_ch(k,j,i);
+	newch*=8;
+	newch=newch>255?255:newch;
+	dst_img->set_ch(k,j,i,newch);
+      }
+  if(debug_save)
+    saveARVP_Image(dst_img,"DEBUG_GRAYDE.jpg");
   printf("Done and deallocing memory\n");
-  delete buff_img;
-  gsl_matrix_free(deriv);
+  delete buff_img_x;
+  delete buff_img_y;
+  gsl_matrix_free(deriv_x);
+  gsl_matrix_free(deriv_y);
   delete[] weights;
 }
 #endif
