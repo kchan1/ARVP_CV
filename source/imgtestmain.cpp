@@ -43,46 +43,6 @@ int main(int argc,char*argv[])
     printf("\timg[%i,%i]=(%i,%i,%i)\n",(int)i,(int)i,(int)px.ch[0],(int)px.ch[1],(int)px.ch[2]);
   }
   saveARVP_Image(img,"img.jpg");
-  //weird jpeglib commands here for compressing to a file
-  /*
-  printf("Writing JPEG image!\n");
-  struct jpeg_compress_struct cinfo;
-  struct jpeg_error_mgr jerr;
-  jpeg_create_compress(&cinfo);
-  
-  FILE *outfile;
-  if ((outfile = fopen("img.jpg", "wb")) == NULL) {
-    fprintf(stderr, "can't open %s\n", "saveimg.jpg");
-    exit(1);
-  }
-  jpeg_stdio_dest(&cinfo, outfile);
-  printf("Destination Set\n");
-  cinfo.err = jpeg_std_error(&jerr);
-  printf("Error Set\n");
-  cinfo.image_width = img_cols;      // image width and height, in pixels
-  cinfo.image_height = img_rows;
-  printf("Width & Height Set\n");
-  cinfo.input_components = 3;     // # of color components per pixel
-  cinfo.in_color_space = JCS_RGB; // colorspace of input image
-  printf("Colors Set\n");
-  jpeg_set_defaults(&cinfo);
-  // Make optional parameter settings here
-  printf("Compression Start\n");
-  jpeg_start_compress(&cinfo, TRUE);
-  JSAMPROW row_pointer[1];	// pointer to a single row
-  int row_stride;			// physical row width in buffer
-  row_stride = img_cols*3;	// JSAMPLEs per row in image_buffer
-  printf("Scanning... ");
-  while (cinfo.next_scanline < cinfo.image_height) {
-    row_pointer[0] = &(img->data[cinfo.next_scanline * row_stride]);
-    jpeg_write_scanlines(&cinfo, row_pointer, 1);
-  }
-  printf("Done!\n");
-  jpeg_finish_compress(&cinfo);
-  printf("Destroy Everything!\n");
-  jpeg_destroy_compress(&cinfo);
-  //gsl_matrix_free(img);
-  */
   delete img;
   gsl_matrix_free(gauss);
   return 0;
