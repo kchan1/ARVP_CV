@@ -2,6 +2,7 @@
 #define _IMAGEOPS_HPP_
 #include "imgformat.hpp"
 #include "LinkedList.hpp"
+#include "ARVP_JPEG.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <gsl/gsl_blas.h>
