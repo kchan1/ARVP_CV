@@ -129,7 +129,7 @@ void growGroups(LinkedList<pointGroup>*groups)
 }
 
 //detects targets at a specified scale
-void detectLowGradeScale(ARVP_Image*scale_space_img,int scale,int threshold,LinkedList<Point2D<int> >*candidate_list,bool debug=false)
+void detectGradeScale(ARVP_Image*scale_space_img,int scale,int low_threshold,int hi_threshold,LinkedList<Point2D<int> >*candidate_list,bool debug=false)
 {
   gsl_matrix*filter;
   int j,i;
@@ -157,12 +157,16 @@ void detectLowGradeScale(ARVP_Image*scale_space_img,int scale,int threshold,Link
       //later add the maxima/minima condition maybe
       //yes this is arbitrarily accessing the red channel
       int intensity = (int)scale_space_img->get_ch(0,j,i);
-      if(intensity<=threshold)
+      if(intensity<=low_threshold||intensity>=hi_threshold)
       {
 	//printf("Got one!\n");
-	candidate_list->push(new Point2D<int>(i,j));
+	//candidate_list->push(new Point2D<int>(i,j));
 	if(debug)
+	{
+	  scale_space_img->set_ch(0,j,i,0);
 	  scale_space_img->set_ch(1,j,i,255);
+	  scale_space_img->set_ch(2,j,i,0);
+	}
       }
     }
   if(debug)
@@ -195,8 +199,8 @@ LinkedList<Point2D<int> >*cannyGroupDetect(ARVP_Image*src_img,int init_scale,int
   return candidate_list;
 }
 
-//detects targets at a specified scale as a low-gradient section
-LinkedList<Point2D<int> >*gradeSmoothDetect(ARVP_Image*src_img,int init_scale,int max_scale, int threshold,bool debug = false)
+//detects targets at a specified scale as a low/hi-gradient section
+LinkedList<Point2D<int> >*gradeSmoothDetect(ARVP_Image*src_img,int init_scale,int max_scale, int low_threshold,int hi_threshold,bool debug = false)
 {
   int scale;
   ARVP_Image*gradient_img = new ARVP_Image(src_img->height,src_img->width);
@@ -224,7 +228,7 @@ LinkedList<Point2D<int> >*gradeSmoothDetect(ARVP_Image*src_img,int init_scale,in
       gsl_matrix_free(filter);
     }
     //pass the scale space image to the detection
-    detectLowGradeScale(gradient_img,scale,threshold,candidate_list,debug);
+    detectGradeScale(gradient_img,scale,low_threshold,hi_threshold,candidate_list,debug);
   }
   printf("Finished detecting, now deleting\n");
   delete gradient_img;
