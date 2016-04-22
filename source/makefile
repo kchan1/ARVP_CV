@@ -1,5 +1,5 @@
 CC=g++
-CMAIN=imgtestmain
+CMAIN=TargetFindTest
 CFLAGS=-I/usr/local/include
 LFLAGS=-I/usr/local/lib
 LLIBS=-lgsl -lgslcblas -lm -ljpeg
@@ -8,9 +8,5 @@ $(CMAIN): $(CMAIN).o
 	LD_LIBRARY_PATH=/usr/local/lib
 	export LD_LIBRARY_PATH
 	$(CC) $(LFLAGS) $(CMAIN).o $(LLIBS) -o $(CMAIN)
-%: %.o	
-	LD_LIBRARY_PATH=/usr/local/lib
-	export LD_LIBRARY_PATH
-	$(CC) $(LFLAGS) %.o $(LLIBS) -o %
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) -Wall
