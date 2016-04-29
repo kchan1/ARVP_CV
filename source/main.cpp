@@ -8,78 +8,13 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "SyncQueue.h"
+//#include "SyncQueue.h"
+#include "share.hpp"
+#include "Dummy/dummy.hpp"
+#include "threading.hpp"
+#include <string.h>
 #define NUM_THREADS 5
 
-//holds a configuration
-struct Config
-{
-  int baudrate;
-  char port[128]; 
-};
-
-//holds the data buffers for the pipeline
-struct DataTable
-{
-  SyncQueue* snapshot_queue;
-  SyncQueue* target_queue;
-  SyncQueue* results_queue;
-  FILE* logfile;
-};
-
-//holds pointers to the threads
-struct ThreadTable
-{
-  pthread_t* activate;
-  pthread_t* take_picture;
-  pthread_t* get_pixhawk;
-  pthread_t* target_find;
-  pthread_t* calc_target_loc;
-  pthread_t* OCR;
-  pthread_t* publish;
-};
-
-//holds the ready bits (should be accessed through mutex)
-struct ReadyTable
-{
-  short int ready_activate = 0;
-  short int ready_take_picture = 0;
-  short int ready_get_pixhawk = 0;
-  short int ready_target_find = 0;
-  short int ready_calc_target_loc = 0;
-  short int ready_OCR = 0;
-  short int ready_publish = 0;
-};
-
-//holds the notify message buffers, either 0 or a clock time
-struct NotifyTable
-{
-  clock_t notify_activate = 0;
-  clock_t notify_take_picture = 0;
-  clock_t notify_get_pixhawk = 0;
-  clock_t notify_target_find = 0;
-  clock_t notify_calc_target_loc = 0;
-  clock_t notify_OCR = 0;
-  clock_t notify_publish = 0;
-};
-
-//holds mutexes not held by the queues
-struct MiscMutex
-{
-  pthread_mutex_t* activate_mutex;
-  pthread_mutex_t* screen_mutex;
-}
-
-//packs all the data for all threads to access
-struct SharedData {
-  struct Config* config;
-  struct DataTable* data_table;
-  struct ThreadTable* thread_table;
-  struct ReadyTable* ready_table;
-  struct NotifyTable* notify_table;
-  int* killbit;
-}
-  
 void *PrintHello(void *threadid)
 {
    long tid;
@@ -90,23 +25,23 @@ void *PrintHello(void *threadid)
 
 int main(int argc, char *argv[])
 {
+  printf("Starting program\n");
+  printf("Creating Structs\n");
   //grab configuration here
   struct Config* config = new Config();
   
   //construct data structures here, point to them
   struct DataTable* data_table = new DataTable();
 
-  //construct sync mechanisms, point to them
-  struct ReadyTable* ready_table = new ReadyTable();
-  struct NotifyTable* notify_table = new NotifyTable();
-  struct MiscMutex* misc_mutex = new MiscMutex();
-  pthread_mutex_t* activate_mutex = new pthread_mutex_t();
-  pthread_mutex_t* screen_mutex = new pthread_mutex_t();
-  misc_mutex->activate_mutex = activate_mutex;
-  misc_mutex->screen_mutex = screen_mutex;
-  int killbit = 0;
+  //construct sync/control structures, point to them
+  struct ControlTable* control_table = new ControlTable();
+  control_table->ctrl_main=new ThreadControl();
+  control_table->ctrl_activate=new ThreadControl();
+  control_table->ctrl_take_picture=new ThreadControl();
+  control_table->ctrl_publish=new ThreadControl();
+  control_table->ctrl_screen=new ThreadControl();
 
-  //construct threads, point to them
+  //construct this now, fill it out later
   struct ThreadTable* thread_table = new ThreadTable();
   
   //pack all data for threads to share
@@ -114,65 +49,82 @@ int main(int argc, char *argv[])
   shared_data->config = config;
   shared_data->data_table = data_table;
   shared_data->thread_table = thread_table;
-  shared_data->ready_table = ready_table;
-  shared_data->notify_table = notify_table;
-  shared_data->killbit = &killbit;
+  shared_data->control_table = control_table;
+  shared_data->killbit = new int();
+  *shared_data->killbit = 0;
+  printf("Finished Shared Data Table\n");
+  //construct and execute threads, point to them in the table
+  //shared_data->thread_table->main = new pthread_t();
+  //*shared_data->thread_table->main = pthread_self();
+  /*
+  pthread_create(shared_data->thread_table->activate,NULL, activate,(void*)shared_data);
+  pthread_create(shared_data->thread_table->take_picture,NULL, take_picture,(void*)shared_data);
+  pthread_create(shared_data->thread_table->target_find,NULL, target_find,(void*)shared_ata);
+  pthread_create(shared_data->thread_table->publish,NULL, publish,(void*)shared_data);  
+  */
+  printf("Starting Activate\n");
+  pthread_create(shared_data->thread_table->activate,NULL, dummy,(void*)shared_data);
+  printf("Starting TakePicture\n");
+  pthread_create(shared_data->thread_table->take_picture,NULL, dummy,(void*)shared_data);
+  printf("Starting TargetFind\n");
+  pthread_create(shared_data->thread_table->target_find,NULL, dummy,(void*)shared_data);
+  printf("Starting Publish\n");
+  pthread_create(shared_data->thread_table->publish,NULL, dummy,(void*)shared_data);  
 
-  //execute threads
-
+  printf("Polling for user input now\n");
   //poll on user input
   char user_in[256]="";
-  int screenstate = 0;
   do
   {
-    printf("Enter 'cmd' to enter a command, or 'exit' to exit\n");
-    scanf("%s",&user_in);
+    printf("Enter 'cmd' to enter a command, 'status' for how I'm doing, or 'q' to exit\n");
+    scanf("%s",user_in);
 
     //cases for command
-    if(user_in=="cmd")
+    if(strcmp(user_in,"cmd"))
     {
       int done = 0;
       //lock the screen so that publish doesn't interrupt
-      pthread_mutex_lock(screen_mutex);
+      control_table->ctrl_screen->waitLock();
       printf("Enter your command, or nothing to stop\n");
       while(!done)
       {
-	scanf("%s",&user_in);
+	scanf("%s",user_in);
 
-	if(user_in=="help")
+	if(strcmp(user_in,"help"))
 	{
-	  printf("Current Commands: snap")
+	  printf("Current Commands: help, snap\n");
 	}
-	else if(user_in=="snap")
+	else if(strcmp(user_in,"snap"))
 	{
-	  pthread_mutex_lock(shared_data->misc_mutex->activate_mutex);
-	  notify_activate = clock();
-	  pthread_mutex_unlock(shared_data->misc_mutex->activate_mutex);
+	  control_table->ctrl_take_picture->waitLock();
+	  ThreadMessage*msg = new ThreadMessage(0x1,clock(),NULL);
+	  control_table->ctrl_take_picture->addMessage(msg);
+	  control_table->ctrl_take_picture->wake();
+	  control_table->ctrl_take_picture->unlock();
+	}
+	else
+	{
+	  done = 1;
 	}
       }
-      pthread_mutex_unlock(screen_mutex);
+      control_table->ctrl_screen->unlock();
     }
     //case for status
-    else if(user_in=="stat")
+    else if(strcmp(user_in,"status"))
     {
-      //lock each queue consecutively to get the sizes, then lock screen and print screen
+      ;//lock each queue consecutively to get the sizes, then lock screen and print screen
     }
-  }while(user_in!="exit");
+  }while(!strcmp(user_in,"q"));
   //exit
-  killbit=1;
-  //pthread_exit(NULL);
-  pthread_t threads[NUM_THREADS];
-  int rc;
-  long t;
-  for(t=0;t<NUM_THREADS;t++){
-    printf("In main: creating thread %ld\n", t);
-    rc = pthread_create(&threads[t], NULL, PrintHello, (void *)t);
-    if (rc){
-      printf("ERROR; return code from pthread_create() is %d\n", rc);
-      exit(-1);
-    }
-  }
-  
-  /* Last thing that main() should do */
+  *shared_data->killbit=1;
+  //join all processes
+  void* status;
+  pthread_join(*shared_data->thread_table->activate,&status);
+  pthread_join(*shared_data->thread_table->take_picture,&status);
+  pthread_join(*shared_data->thread_table->target_find,&status);
+  pthread_join(*shared_data->thread_table->publish,&status);
+  //delete all data
+  delete shared_data;
+  printf("EXITING\n");
   pthread_exit(NULL);
 }
