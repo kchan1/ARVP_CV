@@ -12,6 +12,8 @@ LinkedList<ClusterProfile>*getProfiles(ARVP_Image * src_img, ARVP_Image * ctrl_i
   for(k=0;k<map->clusters();k++)
     profiles->push(new ClusterProfile(3,8));
   printf("Sampling...\n");
+  //long unsigned int count = 0;
+  //long unsigned int uncount = 0;
   for(j=0;j<src_img->height;j++)
     for(i=0;i<src_img->width;i++)
     {
@@ -25,13 +27,68 @@ LinkedList<ClusterProfile>*getProfiles(ARVP_Image * src_img, ARVP_Image * ctrl_i
       {
 	//printf("px %i,%i: cluster %i\n",(int)j,(int)i,cluster);
 	profiles->get(cluster)->addPixel(px);
+	//count++;
       }
+      /*
       else
       {
 	printf("Not Found!\n");
+	uncount++;
       }
+      */
     }
-  printf("\n");
+  //printf("END: count: %lu uncount: %lu\n",count,uncount);
   return profiles;
 }
+//ultimate culmination of the kmeans toolset
+class KMeans
+{
+private:
+  LinkedList<ClusterProfile>*profiles;
+  KMeansMap*map;
+public:
+  KMeans()
+  {
+    this->profiles = NULL;
+    this->map = NULL;
+  }
+  KMeans(LinkedList<ClusterProfile>*profiles,KMeansMap*map)
+  {
+    this->profiles = profiles;
+    this->map = map;
+  }
+  ~KMeans()
+  {
+    while(this->profiles->hasNext())
+    {
+      ClusterProfile*next = profiles->pop();
+      delete next;
+    }
+    delete this->profiles;
+    delete this->map;
+  }
+  unsigned int matchPixel(pixel_RGB px)
+  {
+    if(this->profiles->getSize()<2)
+    {
+      printf("!!! ERROR IN MATCHPIXEL!!!\n");
+      return 0;
+    }
+    //int min_match=0;
+    //int min_dist=this->profiles->get(0)->get;
+    for(int i=1;i<this->profiles->getSize();i++)
+    {
+      ;
+    }
+    return 0;
+  }
+  void saveKMeans(const char* filename)
+  {
+    ;
+  }
+  void loadKMeans(const char* filename)
+  {
+    ;
+  }
+};
 #endif

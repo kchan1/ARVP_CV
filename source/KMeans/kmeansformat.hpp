@@ -10,6 +10,7 @@ public:
   long*bucket_list;
   ChannelProfile(int buckets)
   {
+    this->samples = 0;
     this->buckets = buckets;
     this->bucket_list = new long[buckets];
     for(int i=0;i<buckets;i++)
@@ -27,21 +28,28 @@ public:
   
   virtual void addSamples(unsigned int bucket, int amount)
   {
+    //if(bucket ==0)
+    //  printf("SAMPLES %lu -> %lu\n",this->samples,this->samples+amount);
     this->samples += amount;
     this->bucket_list[bucket] += amount;
   }
   
   virtual double getMean()
   {
-    printf("GETTING MEAN WITH %u SAMPLES\n",(unsigned int)this->samples);
+    //printf("GETTING MEAN WITH %lu SAMPLES\n",this->samples);
     double mean = 0;
     for(unsigned int i=0;i<this->buckets;i++)
     {
       long double bucket = (long double)(this->bucket_list[i]);
       long double num_samples = (long double)(this->samples);
-      printf("BUCKET %i HAS %i / %u \n",(int)i,(int)this->bucket_list[i],(unsigned int)this->samples);
+      /*
+      printf("BUCKET %u HAS %lu / %lu \n",
+	     i,
+	     this->bucket_list[i],
+	     this->samples);
       printf("\tWEIGHT: %f\n",double(bucket/num_samples));
-      mean += double(bucket*i/num_samples);
+      */
+      mean += double(bucket*i/num_samples * 255/this->buckets);
     }
     return mean;
   }
@@ -97,93 +105,13 @@ public:
   {
     return this->channel_list[channel]->getMean();
   }
-};
-
-class AggregateChannel : public ChannelProfile
-{
-public:
-  double mean;
-  //long samples;
-  AggregateChannel(double mean,unsigned int samples) :
-    ChannelProfile(0)
-  {
-    this->mean = mean;
-    this->samples = samples;
-  }
-  AggregateChannel() :
-    ChannelProfile(0)
-  {
-    this->mean = 0;
-    this->samples = 0;
-  }
   /*
-  static AggregateChannel * combineProfiles( LinkedList<ChannelProfile> *profile_list)
+  virtual getDistance(Region blob)
   {
-    double new_mean = 0;
-    long new_samples = 0;
-    for(int i=0;i<profile_list->getSize();i++)
-    {
-      ChannelProfile*cp = profile_list.get(i);
-      new_mean += cp->getMean();
-      new_samples += cp->channels;
-    }
-    return new AggregateChannel(new_mean,new_samples);
+    for(int k=0;)
   }
   */
 };
-
-class AggregateProfile : public ClusterProfile
-{
-  AggregateChannel**channel_list;
-  AggregateProfile(int channels)
-  {
-    this->samples = 0;
-    this->channels = channels;
-    this->buckets = 0;
-    this->channel_list=new AggregateChannel*[channels];
-  }
-  AggregateProfile(ClusterProfile*prev_profile)
-  {
-    this->samples = 0;
-    this->channels = prev_profile->channels;
-    this->buckets = 0;
-    this->channel_list=new AggregateChannel*[prev_profile->channels];
-    for(unsigned int i=0;i<prev_profile->channels;i++)
-      this->channel_list[i]=new AggregateChannel(prev_profile->channel_list[i]->getMean(),prev_profile->channel_list[i]->samples);
-  }
-  ~AggregateProfile()
-  {
-    for(unsigned int i=0;i<channels;i++)
-      delete channel_list[i];
-    delete[] channel_list;
-  }
-  virtual void addSample(unsigned int channel,unsigned int bucket, int amount)
-  {return;}
-
-  virtual double getChannelMean(unsigned int channel)
-  {
-    return this->channel_list[channel]->getMean();
-  }
-  /*
-  static AggregateProfile*combineProfiles(LinkedList<ClusterProfile>*profile_list)
-  {
-    AggregateProfile*new_profile = new AggregateProfile(profile_list.get(0)->channels);
-    LinkedList<ChannelProfile>*ch_profiles();
-    for(int i=0;i<new_profile->channels;i++)
-    {
-      while(ch_profiles->hasNext())
-	delete ch_profiles->pop();
-      for(int j=0;j<profile_list->getSize();j++)
-      {
-	ch_profiles.push(profile_list->get(j)->channel_list[i])
-      }
-      new_profile->channel_list[i] = AggregateChannel::combineProfiles(ch_profiles);
-    }
-    return new_profile;
-  }
-  */
-};
-  
 class KMeansMap
 {
 private:
@@ -237,5 +165,14 @@ public:
 	return i;
     return 420;
   }
+  pixel_RGB getClusterID(unsigned int cluster_index)
+  {
+    return this->cluster_list->get(cluster_index)->ID;
+  }
+  const char* getClusterName(unsigned int cluster_index)
+  {
+    return this->cluster_list->get(cluster_index)->name;
+  }
 };
+
 #endif

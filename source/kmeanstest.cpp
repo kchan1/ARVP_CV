@@ -40,11 +40,11 @@ int main(int argc,char*argv[])
   printf("Results:\n");
   for(int i=0;i<profiles->getSize();i++)
   {
-    printf("Result %i %f,%f,%f\n",
-	   i,
+    printf("Result %s %f,%f,%f\n",
+	   skymap->getClusterName(i),
 	   profiles->get(i)->getChannelMean(0),
 	   profiles->get(i)->getChannelMean(1),
-	   profiles->get(i)->getChannelMean(1));
+	   profiles->get(i)->getChannelMean(2));
   }
   printf("Deleting the results\n");
   while(profiles->hasNext())

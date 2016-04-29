@@ -2,8 +2,8 @@ CC=g++
 CMAIN=main
 CFLAGS=-I/usr/local/include
 LFLAGS=-I/usr/local/lib
-LLIBS=-lgsl -lgslcblas -lm -ljpeg
-DEPS= *.hpp TargetFind/*.hpp KMeans/*.hpp
+LLIBS=-lgsl -lgslcblas -lm -ljpeg -lpthread
+DEPS= *.hpp TargetFind/*.hpp KMeans/*.hpp Dummy/*.hpp
 $(CMAIN): $(CMAIN).o
 	LD_LIBRARY_PATH=/usr/local/lib
 	export LD_LIBRARY_PATH
