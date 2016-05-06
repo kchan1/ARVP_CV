@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
   shared_data->killbit = new int();
   *shared_data->killbit = 0;
   printf("Finished Shared Data Table\n");
+  
   //construct and execute threads, point to them in the table
   //shared_data->thread_table->main = new pthread_t();
   //*shared_data->thread_table->main = pthread_self();
@@ -62,6 +63,11 @@ int main(int argc, char *argv[])
   pthread_create(shared_data->thread_table->target_find,NULL, target_find,(void*)shared_ata);
   pthread_create(shared_data->thread_table->publish,NULL, publish,(void*)shared_data);  
   */
+  shared_data->thread_table->activate = new pthread_t();
+  shared_data->thread_table->take_picture = new pthread_t();
+  shared_data->thread_table->target_find = new pthread_t();
+  shared_data->thread_table->publish = new pthread_t();
+  
   printf("Starting Activate\n");
   pthread_create(shared_data->thread_table->activate,NULL, dummy,(void*)shared_data);
   printf("Starting TakePicture\n");

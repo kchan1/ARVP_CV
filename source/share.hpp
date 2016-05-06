@@ -38,6 +38,13 @@ struct ThreadTable
   pthread_t* take_picture;
   pthread_t* target_find;
   pthread_t* publish;
+  ~ThreadTable()
+  {
+    delete activate;
+    delete take_picture;
+    delete target_find;
+    delete publish;
+  }
 };
 
 //holds the thread control objects
