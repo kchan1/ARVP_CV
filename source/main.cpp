@@ -3,7 +3,7 @@
 * DESCRIPTION:
 *   The entry point for the drone logic. Constructs and runs threads.
 * AUTHOR: Kennith Chan
-* LAST REVISED: 02/28/16
+* LAST REVISED: 05/6/16
 ******************************************************************************/
 #include <pthread.h>
 #include <stdio.h>
@@ -84,43 +84,79 @@ int main(int argc, char *argv[])
   {
     printf("Enter 'cmd' to enter a command, 'status' for how I'm doing, or 'q' to exit\n");
     scanf("%s",user_in);
-
+    printf("Got '%s'\n",user_in);
     //cases for command
-    if(strcmp(user_in,"cmd"))
+    if(strcmp(user_in,"cmd")==0)
     {
       int done = 0;
       //lock the screen so that publish doesn't interrupt
       control_table->ctrl_screen->waitLock();
-      printf("Enter your command, or nothing to stop\n");
+      printf("Screen Locked, Entering Command Mode,'help' for help, 'return' to stop\n");
       while(!done)
       {
 	scanf("%s",user_in);
-
-	if(strcmp(user_in,"help"))
+	printf("Got '%s'\n",user_in);
+	if(strcmp(user_in,"help")==0)
 	{
 	  printf("Current Commands: help, snap\n");
 	}
-	else if(strcmp(user_in,"snap"))
+	else if(strcmp(user_in,"snap")==0)
 	{
+	  printf("Manual Snapshot!\n");
 	  control_table->ctrl_take_picture->waitLock();
 	  ThreadMessage*msg = new ThreadMessage(0x1,clock(),NULL);
 	  control_table->ctrl_take_picture->addMessage(msg);
 	  control_table->ctrl_take_picture->wake();
 	  control_table->ctrl_take_picture->unlock();
 	}
-	else
+	else if(strcmp(user_in,"return")==0)
 	{
 	  done = 1;
 	}
       }
+      printf("Unlocking Screen, exiting command mode...\n");
       control_table->ctrl_screen->unlock();
     }
     //case for status
-    else if(strcmp(user_in,"status"))
+    else if(strcmp(user_in,"status")==0)
     {
-      ;//lock each queue consecutively to get the sizes, then lock screen and print screen
+      LinkedList<ThreadMessage>* msg_buff = new LinkedList<ThreadMessage>();
+      //lock each queue consecutively to get the sizes, then lock screen and print screen
+      control_table->ctrl_screen->waitLock();
+      printf("--------SYSTEM STATUS--------\n");
+      printf("-thread 'activate':\n");
+      printf("-\tstatus     : %04x\n",control_table->ctrl_activate->getStatus());
+      printf("-\thasMessage: %s\n",control_table->ctrl_activate->hasMessage()?"true":"false");
+      while(control_table->ctrl_activate->hasMessage())
+      {
+	ThreadMessage*msg = control_table->ctrl_activate->nextMessage();
+	printf("-\tMessage: flags:%04u clock:%u\n",msg->getFlags(),(unsigned int)msg->getTime());
+	msg_buff->push(msg);
+      }
+      while(msg_buff->hasNext())
+      {
+	ThreadMessage*msg = msg_buff->shift();
+	control_table->ctrl_activate->addMessage(msg);
+      }
+
+      printf("-thread 'take_picture':\n");
+      printf("-\tstatus     : %04x\n",control_table->ctrl_take_picture->getStatus());
+      printf("-\thasMessage: %s\n",control_table->ctrl_take_picture->hasMessage()?"true":"false");
+      while(control_table->ctrl_take_picture->hasMessage())
+      {
+	ThreadMessage*msg = control_table->ctrl_take_picture->nextMessage();
+	printf("-\tMessage: flags:%04u clock:%u\n",msg->getFlags(),(unsigned int)msg->getTime());
+	msg_buff->push(msg);
+      }
+      while(msg_buff->hasNext())
+      {
+	ThreadMessage*msg = msg_buff->shift();
+	control_table->ctrl_take_picture->addMessage(msg);
+      }
+      printf("-----------------------------\n");
+      control_table->ctrl_screen->unlock();     
     }
-  }while(!strcmp(user_in,"q"));
+  }while(!strcmp(user_in,"q")==0);
   //exit
   *shared_data->killbit=1;
   //join all processes
