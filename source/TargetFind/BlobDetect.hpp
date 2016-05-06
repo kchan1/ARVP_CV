@@ -25,13 +25,23 @@ public:
     this->members = new LinkedList<Point2D<int> >();
     members->push(init_pt);
     this->circum_radius = 1.0;
+    this->centroid = new Point2D<double>(init_pt->xpos,init_pt->ypos);
   }
   ~pointGroup()
   {
     delete this->centroid;
+    while(members->hasNext())
+    {
+      Point2D<int>*pt = members->pop();
+      delete pt;
+    }
     delete this->members;
   }
-  double getRadius()
+  int getSize()
+  {
+    return this->members->getSize();
+  }
+  double getSqrRadius()
   {
     return this->circum_radius;
   }
@@ -59,7 +69,8 @@ public:
     double maxsqrdist=1;
     for(int i=0;i<members->getSize();i++)
     {
-      double sqrdist=pow(this->centroid->xpos-members->get(i)->xpos,2)+pow(this->centroid->ypos-members->get(i)->ypos,2);
+      double sqrdist=pow(this->centroid->xpos-members->get(i)->xpos,2)+
+	pow(this->centroid->ypos-members->get(i)->ypos,2);
       if(sqrdist>maxsqrdist)
 	maxsqrdist=sqrdist;
     }
@@ -77,7 +88,8 @@ bool canGrab(pointGroup*group1,pointGroup*group2)
   Point2D<double>*cent1 = group1->getCentroid();
   Point2D<double>*cent2 = group2->getCentroid();
   double sqrdist = pow(cent1->xpos-cent2->xpos,2)+pow(cent1->ypos-cent2->ypos,2);
-  if(sqrdist<=pow(group1->getRadius()*1.5,2))
+  //grabs based on euclidean distance
+  if(sqrt(sqrdist)<= sqrt(group1->getSqrRadius())*1.5 + sqrt(group2->getSqrRadius())*1.5)
   {
     return true;
   }
@@ -91,41 +103,50 @@ void growGroups(LinkedList<pointGroup>*groups)
 {
   LinkedList<pointGroup>*ready=groups;
   LinkedList<pointGroup>*done=new LinkedList<pointGroup>;
+  LinkedList<pointGroup>*dinner=new LinkedList<pointGroup>;
   while(ready->hasNext())
   {
-    pointGroup*group = ready->pop();
-    bool hasRegrouped = false;
+    printf("Running with %i groups ready, %i groups done\n",ready->getSize(),done->getSize());
+    pointGroup*eater = ready->pop();
+    //look for grabs among the ready group
     for(int i=0;i<ready->getSize();i++)
     {
-      if(canGrab(group,ready->get(i)))
+      if(canGrab(eater,ready->get(i)))
       {
-	hasRegrouped = true;
 	pointGroup*food = ready->remove(i);
-	absorbGroup(group,food);
-	delete food;
-	ready->push(group);
-	break;
+	dinner->push(food);
       }
     }
-    if(hasRegrouped)
-      continue;
+    //look for grabs from the groups that already looked
     for(int i=0;i<done->getSize();i++)
     {
-      if(canGrab(group,done->get(i)))
+      if(canGrab(eater,done->get(i)))
       {
-	hasRegrouped = true;
 	pointGroup*food = done->remove(i);
-	absorbGroup(group,food);
-	delete food;
-	ready->push(group);
-	break;
+	dinner->push(food);
       }
     }
-    if(!hasRegrouped)
+    //if there's food, eat it and be ready again, else you're done
+    if(dinner->hasNext())
     {
-      done->push(group);
+      printf("I'm about to eat %i things with my %f radius\n",dinner->getSize(),eater->getSqrRadius());
+      while(dinner->hasNext())
+      {
+	pointGroup*food = dinner->pop();
+        absorbGroup(eater,food);
+	delete food;
+      }
+      ready->push(eater);	
+    }
+    else
+    {
+      done->push(eater);
     }
   }
+  
+  while(done->hasNext())
+    groups->push(done->pop());
+  delete done;
 }
 
 //detects targets at a specified scale
@@ -160,7 +181,7 @@ void detectGradeScale(ARVP_Image*scale_space_img,int scale,int low_threshold,int
       if(intensity<=low_threshold||intensity>=hi_threshold)
       {
 	//printf("Got one!\n");
-	//candidate_list->push(new Point2D<int>(i,j));
+        candidate_list->push(new Point2D<int>(i,j));
 	if(debug)
 	{
 	  scale_space_img->set_ch(0,j,i,0);
