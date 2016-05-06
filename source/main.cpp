@@ -43,6 +43,10 @@ int main(int argc, char *argv[])
 
   //construct this now, fill it out later
   struct ThreadTable* thread_table = new ThreadTable();
+  shared_data->thread_table->activate = new pthread_t();
+  shared_data->thread_table->take_picture = new pthread_t();
+  shared_data->thread_table->target_find = new pthread_t();
+  shared_data->thread_table->publish = new pthread_t();
   
   //pack all data for threads to share
   struct SharedData* shared_data = new SharedData();
@@ -63,10 +67,6 @@ int main(int argc, char *argv[])
   pthread_create(shared_data->thread_table->target_find,NULL, target_find,(void*)shared_ata);
   pthread_create(shared_data->thread_table->publish,NULL, publish,(void*)shared_data);  
   */
-  shared_data->thread_table->activate = new pthread_t();
-  shared_data->thread_table->take_picture = new pthread_t();
-  shared_data->thread_table->target_find = new pthread_t();
-  shared_data->thread_table->publish = new pthread_t();
   
   printf("Starting Activate\n");
   pthread_create(shared_data->thread_table->activate,NULL, dummy,(void*)shared_data);
