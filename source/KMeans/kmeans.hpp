@@ -3,8 +3,9 @@
 #include "../ARVP_JPEG.hpp"
 #include "kmeansformat.hpp"
 #include "../imgformat.hpp"
+#include "../LinkedList.hpp"
 //used for training
-LinkedList<ClusterProfile>*getProfiles(ARVP_Image * src_img, ARVP_Image * ctrl_img, KMeansMap*map)
+LinkedList<ClusterProfile> * getProfiles(ARVP_Image * src_img, ARVP_Image * ctrl_img, KMeansMap*map)
 {
   unsigned int k,j,i;
   LinkedList<ClusterProfile> * profiles = new LinkedList<ClusterProfile>();
@@ -40,6 +41,24 @@ LinkedList<ClusterProfile>*getProfiles(ARVP_Image * src_img, ARVP_Image * ctrl_i
   //printf("END: count: %lu uncount: %lu\n",count,uncount);
   return profiles;
 }
+
+ClusterProfile * blobToCluster(ARVP_Image*src_img,Blob* blob)
+{
+  unsigned int i;
+  ClusterProfile * profile = new ClusterProfile(3,8);
+  printf("Sampling...\n");
+  for(i=0;i<blob->num_coords;i++)
+  {
+    //get the coordinates
+    coord c = blob->coords[i];
+    //get the pixel
+    pixel_RGB px = src_img->get(c.axis[0],c.axis[1]);
+    //add the pixel to the cluster
+    profile->addPixel(px);
+  }
+  return profile;
+}
+
 //ultimate culmination of the kmeans toolset
 class KMeans
 {

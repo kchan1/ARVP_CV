@@ -3,7 +3,7 @@
 typedef struct coord {
   unsigned int axis[2];
   bool operator ==(const coord& c)
-  {return this->axis[0]==c->axis[0] && this->axis[1]==c->axis[1];}
+  {return this->axis[0]==c.axis[0] && this->axis[1]==c.axis[1];}
 } coord;
 
 class Blob
@@ -21,7 +21,7 @@ class Blob
   {
     unsigned int next_size = capacity + (capacity/2+1);
     coord*next_coords = new coord[next_size];
-    for(int i=0;i<num_coords;i++)
+    for(int i=0;i<(int)num_coords;i++)
     {
       next_coords[i]=this->coords[i];
     }
@@ -39,7 +39,7 @@ class Blob
   {
     delete[] coords;
   }
-}
+};
 
 template<class T>
 class Point2D

@@ -14,7 +14,7 @@ public:
     this->buckets = buckets;
     this->bucket_list = new long[buckets];
     for(int i=0;i<buckets;i++)
-      bucket_list[i] = 0;
+      this->bucket_list[i] = 0;
   }
   virtual ~ChannelProfile()
   {
@@ -39,19 +39,14 @@ public:
     //printf("GETTING MEAN WITH %lu SAMPLES\n",this->samples);
     double mean = 0;
     for(unsigned int i=0;i<this->buckets;i++)
-    {
-      long double bucket = (long double)(this->bucket_list[i]);
-      long double num_samples = (long double)(this->samples);
-      /*
-      printf("BUCKET %u HAS %lu / %lu \n",
-	     i,
-	     this->bucket_list[i],
-	     this->samples);
-      printf("\tWEIGHT: %f\n",double(bucket/num_samples));
-      */
-      mean += double(bucket*i/num_samples * 255/this->buckets);
-    }
+      mean += double(i * this->getBucketWeight(i) * 255/this->buckets); 
     return mean;
+  }
+  virtual double getBucketWeight(int bucket_index)
+  {
+    long double bucket = (long double)(this->bucket_list[bucket_index]);
+    long double num_samples = (long double)(this->samples);
+    return bucket/num_samples;
   }
 };
 
@@ -105,13 +100,13 @@ public:
   {
     return this->channel_list[channel]->getMean();
   }
-  /*
+  
   virtual getDistance(Region blob)
   {
     for(int k=0;)
   }
-  */
 };
+
 class KMeansMap
 {
 private:
@@ -125,13 +120,6 @@ private:
       this->name = name;
       this->ID = ID;
     }
-    /*
-    ~ClusterSignature()
-    {
-      delete[] name;
-    }
-    */
-    
   };
 public:
   
@@ -175,4 +163,41 @@ public:
   }
 };
 
+class AggregateChannel:public ChannelProfile
+{
+  unsigned long samples;
+  unsigned int buckets;
+  double* bucket_weights;
+  AggregateChannel(int buckets) : ChannelProfile(0)
+  {
+    this->samples = 0;
+    this->buckets = buckets;
+    this->bucket_weights = new double[buckets];
+    for(int i=0;i<buckets;i++)
+      this->bucket_weights[i] = 0;
+  }
+  AggregateChannel(ChannelProfile*cp) : ChannelProfile(0)
+  {
+    this->samples = cp->samples;
+    this->buckets = cp->buckets;
+    this->bucket_weights = new double[buckets];
+    for(int i=0;i<(int)this->buckets;i++)
+      this->bucket_weights[i] = cp->getBucketWeight(i);
+  }
+  AggregateChannel(ChannelProfile*cp1,ChannelProfile*cp2) : ChannelProfile(0)
+  {
+    this->samples = cp1->samples + cp2->samples;
+    if(cp1->buckets != cp2->buckets)
+      printf("ERROR BUCKET MISMATCH, DEFAULT TO cp1\n\t cp1:%i cp2:%i\n",cp1->buckets,cp2->buckets);
+    this->buckets = cp1->buckets;
+    this->bucket_weights = new double[this->buckets];
+    for(int i=0;i<(int)this->buckets;i++)
+    {
+      //take a weighted average of the weighted averages
+      double wt1 = cp1->getBucketWeight(i);
+      double wt2 = cp2->getBucketWeight(i);
+      this->bucket_weights[i] = (wt1*cp1->samples + wt2*cp2->samples)/(cp1->samples+cp2->samples);
+    }
+  }
+};
 #endif
